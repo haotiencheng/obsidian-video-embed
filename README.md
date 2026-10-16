@@ -18,6 +18,10 @@ Paste a YouTube link into a note. A small card asks how to show it:
 
 Hover an embed and drag the handle on its right edge. The width is saved into the block as `width: 480px`. Double-click the handle to go back to the default width.
 
+## Turn it back into a link
+
+Hover an embed and click **Plain link** in its top-right corner. The whole block becomes the bare URL again. Cmd/Ctrl+Z brings the embed back.
+
 ## Code block
 
 ````markdown

@@ -10,6 +10,7 @@ import {
 	Setting,
 	TFile,
 	requestUrl,
+	setIcon,
 } from "obsidian";
 import { buildEmbedUrl, escapeLinkText, parseBlock, parseYouTube, pastedYouTubeUrl, setBlockWidth } from "./parse";
 import { PastePrompt } from "./paste-prompt";
@@ -99,6 +100,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		});
 
 		this.addResizeHandle(figure, el, ctx);
+		this.addUnembedButton(figure, el, ctx, opts.url);
 
 		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
 	}
@@ -146,7 +148,36 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		});
 	}
 
-	async saveWidth(el: HTMLElement, ctx: MarkdownPostProcessorContext, width: string | null) {
+	/** Small hover button that turns the whole block back into the plain URL. */
+	addUnembedButton(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext, url: string) {
+		const button = figure.createEl("button", {
+			cls: "youtube-embed-unembed",
+			attr: { "aria-label": "Turn back into a plain link" },
+		});
+		setIcon(button.createSpan(), "link");
+		button.createSpan({ text: "Plain link" });
+		// mousedown would otherwise put Live Preview into edit mode for the block.
+		button.addEventListener("mousedown", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+		});
+		button.addEventListener("click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			void this.editBlock(el, ctx, () => [url]);
+		});
+	}
+
+	saveWidth(el: HTMLElement, ctx: MarkdownPostProcessorContext, width: string | null) {
+		return this.editBlock(el, ctx, (lines) => [
+			lines[0],
+			...setBlockWidth(lines.slice(1, -1), width),
+			lines[lines.length - 1],
+		]);
+	}
+
+	/** Replace the block's lines (fences included) with `transform(lines)`. */
+	async editBlock(el: HTMLElement, ctx: MarkdownPostProcessorContext, transform: (lines: string[]) => string[]) {
 		const info = ctx.getSectionInfo(el);
 		const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 		if (!info || !(file instanceof TFile)) return;
@@ -160,21 +191,20 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 		if (view && view.getMode() === "source") {
 			const editor = view.editor;
-			const body: string[] = [];
-			for (let line = lineStart + 1; line < lineEnd; line++) body.push(editor.getLine(line));
-			const next = setBlockWidth(body, width);
+			const lines: string[] = [];
+			for (let line = lineStart; line <= lineEnd; line++) lines.push(editor.getLine(line));
 			editor.replaceRange(
-				next.map((line) => `${line}\n`).join(""),
-				{ line: lineStart + 1, ch: 0 },
-				{ line: lineEnd, ch: 0 },
+				transform(lines).join("\n"),
+				{ line: lineStart, ch: 0 },
+				{ line: lineEnd, ch: editor.getLine(lineEnd).length },
 			);
 			return;
 		}
 
 		await this.app.vault.process(file, (text) => {
 			const lines = text.split("\n");
-			const body = lines.slice(lineStart + 1, lineEnd);
-			lines.splice(lineStart + 1, body.length, ...setBlockWidth(body, width));
+			const block = lines.slice(lineStart, lineEnd + 1);
+			lines.splice(lineStart, block.length, ...transform(block));
 			return lines.join("\n");
 		});
 	}

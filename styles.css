@@ -72,6 +72,46 @@
 	opacity: 1;
 }
 
+/* "Plain link" button: top-right on hover */
+
+.youtube-embed button.youtube-embed-unembed {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	height: auto;
+	padding: 4px 8px;
+	border: none;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	color: var(--text-normal);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.youtube-embed button.youtube-embed-unembed:hover {
+	background: var(--background-primary-alt);
+}
+
+.youtube-embed-unembed svg {
+	width: 14px;
+	height: 14px;
+}
+
+.youtube-embed:hover .youtube-embed-unembed {
+	opacity: 1;
+}
+
+/* Leave room for Live Preview's own "edit block" button in the corner. */
+.cm-embed-block .youtube-embed button.youtube-embed-unembed {
+	right: 44px;
+}
+
 /* The iframe would swallow pointer events mid-drag. */
 .youtube-embed.is-resizing iframe {
 	pointer-events: none;
