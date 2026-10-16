@@ -1,0 +1,10 @@
+{
+	"id": "youtube-embed",
+	"name": "YouTube Embed",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.7",
+	"description": "Embed YouTube videos, Shorts, and playlists with a youtube code block.",
+	"author": "Project Stain",
+	"authorUrl": "https://github.com/haotiencheng",
+	"isDesktopOnly": false
+}
