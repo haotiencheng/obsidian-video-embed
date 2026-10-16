@@ -2,7 +2,7 @@
 
 Paste a YouTube, Instagram, or TikTok link into a note and choose how to show it, Notion style.
 
-![Paste a YouTube link, embed it, resize, edit, and turn it back into a link](https://raw.githubusercontent.com/haotiencheng/obsidian-video-embed/main/assets/demo.gif)
+![Paste a YouTube, Instagram, or TikTok link, pick Embed, and resize it](https://raw.githubusercontent.com/haotiencheng/obsidian-video-embed/main/assets/demo.gif)
 
 ## Install
 
