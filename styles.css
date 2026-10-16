@@ -113,6 +113,38 @@
 	margin-right: 34px;
 }
 
+/* Hover tooltips for the remove button and resize handle, shown to their left */
+
+.youtube-embed-tip {
+	position: absolute;
+	top: 50%;
+	right: calc(100% + 6px);
+	transform: translateY(-50%);
+	padding: 3px 8px;
+	border-radius: 4px;
+	background: rgba(0, 0, 0, 0.85);
+	color: #fff;
+	font-size: var(--font-ui-smaller);
+	line-height: 1.4;
+	white-space: nowrap;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 80ms ease;
+}
+
+.youtube-embed-resize .youtube-embed-tip {
+	right: 18px;
+}
+
+.youtube-embed button.youtube-embed-unembed:hover .youtube-embed-tip,
+.youtube-embed-resize:hover .youtube-embed-tip {
+	opacity: 1;
+}
+
+.youtube-embed.is-resizing .youtube-embed-tip {
+	opacity: 0;
+}
+
 /* The iframe would swallow pointer events mid-drag. */
 .youtube-embed.is-resizing iframe {
 	pointer-events: none;

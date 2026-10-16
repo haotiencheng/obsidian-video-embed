@@ -11,7 +11,6 @@ import {
 	TFile,
 	requestUrl,
 	setIcon,
-	setTooltip,
 } from "obsidian";
 import { buildEmbedUrl, escapeLinkText, parseBlock, parseYouTube, pastedYouTubeUrl, setBlockWidth } from "./parse";
 import { PastePrompt } from "./paste-prompt";
@@ -109,7 +108,8 @@ export default class YouTubeEmbedPlugin extends Plugin {
 	/** Drag the right-edge handle to resize; double-click it to reset. Width is saved into the block. */
 	addResizeHandle(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
 		const handle = figure.createDiv({ cls: "youtube-embed-resize" });
-		setTooltip(handle, "Drag to resize, double-click to reset", { placement: "left" });
+		// CSS tooltip: shows instantly on hover, independent of Obsidian's delayed tooltips.
+		handle.createSpan({ cls: "youtube-embed-tip", text: "Drag to resize, double-click to reset" });
 
 		handle.addEventListener("pointerdown", (e) => {
 			e.preventDefault();
@@ -153,7 +153,8 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			cls: "youtube-embed-unembed",
 		});
 		setIcon(button, "x");
-		setTooltip(button, "Remove embed, keep the link", { placement: "left" });
+		// Doubles as the button's accessible name.
+		button.createSpan({ cls: "youtube-embed-tip", text: "Remove embed, keep the link" });
 		// mousedown would otherwise put Live Preview into edit mode for the block.
 		button.addEventListener("mousedown", (e) => {
 			e.preventDefault();
