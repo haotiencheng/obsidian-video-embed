@@ -3,8 +3,8 @@
 	"name": "YouTube Embed",
 	"version": "0.1.0",
 	"minAppVersion": "1.5.7",
-	"description": "Embed YouTube videos, Shorts, and playlists with a youtube code block.",
-	"author": "Project Stain",
+	"description": "Paste a YouTube link and choose to embed it, paste an iframe, or add its title. Supports Shorts and playlists.",
+	"author": "haotiencheng",
 	"authorUrl": "https://github.com/haotiencheng",
 	"isDesktopOnly": false
 }

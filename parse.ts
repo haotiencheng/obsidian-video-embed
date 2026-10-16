@@ -93,6 +93,25 @@ export function parseBlock(source: string): BlockOptions | null {
 	return opts.url ? (opts as BlockOptions) : null;
 }
 
+/** A whole-clipboard YouTube URL (no surrounding text), or null. */
+export function pastedYouTubeUrl(text: string): ParsedVideo | null {
+	const t = text.trim();
+	if (!t || /\s/.test(t) || !/^(https?:\/\/)?([\w-]+\.)*(youtube\.com|youtu\.be)\//i.test(t)) return null;
+	return parseYouTube(t);
+}
+
+/** Raw HTML iframe markup, which Obsidian renders without this plugin. */
+export function buildIframeHtml(video: ParsedVideo, privacyMode: boolean): string {
+	const src = buildEmbedUrl(video, { privacyMode });
+	const [w, h] = video.isShort ? [315, 560] : [560, 315];
+	return `<iframe width="${w}" height="${h}" src="${src}" title="YouTube video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+}
+
+/** Escape characters that would break a markdown link label. */
+export function escapeLinkText(text: string): string {
+	return text.replace(/([[\]\\])/g, "\\$1");
+}
+
 export function buildEmbedUrl(
 	video: ParsedVideo,
 	opts: { start?: number; end?: number; privacyMode: boolean },

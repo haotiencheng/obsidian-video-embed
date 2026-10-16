@@ -1,6 +1,19 @@
 # YouTube Embed for Obsidian
 
-Embed YouTube videos, Shorts, and playlists in a note with a `youtube` code block.
+Embed YouTube videos, Shorts, and playlists in a note, Notion style.
+
+## Paste menu
+
+Paste a YouTube link and a menu pops up at the cursor:
+
+- **Dismiss**: keep the plain URL (or just keep typing, the menu closes and your keys go through)
+- **Embed video / Embed Short**: turn it into a `youtube` code block
+- **Embed as HTML iframe**: raw `<iframe>` markup, renders even without this plugin
+- **Link with title**: `[Video title](url)`, title fetched from YouTube oEmbed
+
+Arrow keys and Enter work in the menu, Esc dismisses. Turn it off in settings with **Show menu on paste**.
+
+## Code block
 
 ````markdown
 ```youtube
@@ -43,6 +56,7 @@ Accepted URLs: `youtube.com/watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/liv
 
 ## Settings
 
+- **Show menu on paste** (default on).
 - **Privacy-enhanced mode** (default on): loads from `youtube-nocookie.com`.
 - **Max width**: cap for 16:9 videos (default `100%`).
 - **Shorts max width**: cap for vertical videos (default `360px`).
