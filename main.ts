@@ -16,15 +16,18 @@ import {
 import {
 	buildEmbedUrl,
 	buildInstagramEmbedUrl,
+	buildTikTokPlayerUrl,
 	escapeLinkText,
 	parseBlock,
 	parseInstagram,
+	parseTikTok,
 	parseYouTube,
 	pastedInstagramUrl,
+	pastedTikTokUrl,
 	pastedYouTubeUrl,
 	setBlockWidth,
 } from "./parse";
-import { PastePrompt } from "./paste-prompt";
+import { PasteChoice, PastePrompt } from "./paste-prompt";
 
 /** The slice of CodeMirror's EditorView we use, exposed as `editor.cm`. */
 interface CodeMirrorView {
@@ -62,6 +65,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 		this.registerMarkdownCodeBlockProcessor("youtube", (source, el, ctx) => this.renderBlock(source, el, ctx));
 		this.registerMarkdownCodeBlockProcessor("instagram", (source, el, ctx) => this.renderInstagram(source, el, ctx));
+		this.registerMarkdownCodeBlockProcessor("tiktok", (source, el, ctx) => this.renderTikTok(source, el, ctx));
 		this.registerDomEvent(window, "message", (e) => this.onInstagramMessage(e));
 
 		this.registerEvent(
@@ -170,16 +174,14 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			frame.style.height = `${full - IG_HEADER - IG_FOOTER}px`;
 		};
 
-		// Creator chip, bottom-left, like Meta AI's preview. The embed hides its own
-		// header, so this keeps the credit visible and links to the creator.
+		// The embed's own header is hidden, so show the credit ourselves.
 		const author = opts.author ?? post.username;
-		const chip = frame.createEl("a", {
-			cls: "youtube-embed-ig-chip",
-			href: author ? `https://www.instagram.com/${author}/` : `https://www.instagram.com/${post.kind}/${post.shortcode}/`,
-			attr: { target: "_blank", rel: "noopener" },
+		this.addCreatorOverlay(frame, {
+			platform: "instagram",
+			postUrl: `https://www.instagram.com/${post.kind}/${post.shortcode}/`,
+			author,
+			authorUrl: author ? `https://www.instagram.com/${author}/` : undefined,
 		});
-		this.drawInstagramGlyph(chip.createSpan({ cls: "youtube-embed-ig-badge" }));
-		chip.createSpan({ cls: "youtube-embed-ig-name", text: author ? `@${author}` : "Instagram" });
 		iframe.addEventListener("load", () => {
 			if (!iframe.contentWindow) return;
 			this.igMeasure.set(iframe.contentWindow, (height) => {
@@ -199,6 +201,91 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		this.addActions(figure, el, ctx, opts.url);
 
 		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
+	}
+
+	renderTikTok(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+		const opts = parseBlock(source);
+		const video = opts ? parseTikTok(opts.url) : null;
+		if (!opts || !video) {
+			el.createDiv({
+				cls: "youtube-embed-error",
+				text: "TikTok embed: put a TikTok video link on the first line of this block.",
+			});
+			return;
+		}
+
+		const figure = el.createEl("figure", { cls: ["youtube-embed", "is-tiktok", "is-vertical"] });
+		figure.style.setProperty(
+			"--youtube-embed-max-width",
+			opts.width ?? (this.settings.shortsMaxWidth.trim() || DEFAULT_SETTINGS.shortsMaxWidth),
+		);
+		const frame = figure.createDiv({ cls: "youtube-embed-frame" });
+
+		// TikTok's player draws its own creator header and logo, so no overlay here.
+		const show = (videoId: string) => {
+			frame.createEl("iframe", {
+				attr: {
+					src: buildTikTokPlayerUrl(videoId),
+					title: opts.caption ?? "TikTok video",
+					frameborder: "0",
+					allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture",
+					allowfullscreen: "true",
+					loading: "lazy",
+				},
+			});
+		};
+
+		if (video.videoId) {
+			show(video.videoId);
+		} else {
+			// Short links don't contain the video id; TikTok's public oEmbed resolves it.
+			void this.resolveTikTok(video.url).then((videoId) => {
+				if (videoId) show(videoId);
+				else frame.createDiv({ cls: "youtube-embed-error", text: "Could not load this TikTok link." });
+			});
+		}
+
+		this.addResizeHandle(figure, el, ctx);
+		this.addActions(figure, el, ctx, opts.url);
+
+		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
+	}
+
+	private tiktokCache = new Map<string, Promise<string | null>>();
+
+	/** Video id for a TikTok short link, via TikTok's public oEmbed endpoint. */
+	resolveTikTok(url: string): Promise<string | null> {
+		let pending = this.tiktokCache.get(url);
+		if (!pending) {
+			pending = requestUrl({ url: `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}` })
+				.then((res) => (res.json as { embed_product_id?: string }).embed_product_id ?? null)
+				.catch(() => null);
+			this.tiktokCache.set(url, pending);
+		}
+		return pending;
+	}
+
+	/** Instagram badge top-left (links to the post) and @handle bottom-left (links to the creator). */
+	addCreatorOverlay(
+		frame: HTMLElement,
+		info: { platform: "instagram"; postUrl: string; author?: string; authorUrl?: string },
+	) {
+		const external = { target: "_blank", rel: "noopener" };
+		const badge = frame.createEl("a", {
+			cls: ["youtube-embed-badge", `is-${info.platform}`],
+			href: info.postUrl,
+			attr: { ...external, "aria-label": "Open the original post" },
+		});
+		this.drawInstagramGlyph(badge);
+
+		if (info.author) {
+			frame.createEl("a", {
+				cls: "youtube-embed-handle",
+				text: `@${info.author}`,
+				href: info.authorUrl ?? info.postUrl,
+				attr: external,
+			});
+		}
 	}
 
 	/** Simple camera glyph (rounded square, lens, flash dot), drawn in white on the badge's gradient. */
@@ -367,7 +454,8 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		const text = evt.clipboardData?.getData("text/plain") ?? "";
 		const video = pastedYouTubeUrl(text);
 		const post = video ? null : pastedInstagramUrl(text);
-		if (!video && !post) return;
+		const tiktok = video || post ? null : pastedTikTokUrl(text);
+		if (!video && !post && !tiktok) return;
 
 		evt.preventDefault();
 		const url = text.trim();
@@ -386,41 +474,59 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			run: () => undefined,
 		};
 
+		const embed = (lang: "youtube" | "instagram" | "tiktok") => () =>
+			this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url, lang));
+
+		let heading: string;
+		let choices: PasteChoice[];
+		if (video) {
+			heading = "YouTube link pasted. Show it as:";
+			choices = [
+				{
+					icon: "play",
+					title: video.isShort ? "Embed Short" : "Embed video",
+					desc: "Watch it right inside the note.",
+					run: embed("youtube"),
+				},
+				{
+					icon: "bookmark",
+					title: "Title link",
+					desc: "Show the video's title as the link.",
+					run: () => void this.pasteTitledLink(editor, from, to, url),
+				},
+				plainLink,
+			];
+		} else if (post) {
+			heading = "Instagram link pasted. Show it as:";
+			choices = [
+				{
+					icon: post.kind === "reel" ? "film" : "image",
+					title: post.kind === "reel" ? "Embed reel" : "Embed post",
+					desc: "Preview it right inside the note.",
+					run: embed("instagram"),
+				},
+				plainLink,
+			];
+		} else {
+			heading = "TikTok link pasted. Show it as:";
+			choices = [
+				{ icon: "play", title: "Embed video", desc: "Watch it right inside the note.", run: embed("tiktok") },
+				plainLink,
+			];
+		}
+
 		this.prompt?.close();
-		this.prompt = new PastePrompt(
-			activeWindow,
-			coords,
-			video
-				? [
-						{
-							icon: "play",
-							title: video.isShort ? "Embed Short" : "Embed video",
-							desc: "Watch it right inside the note.",
-							run: () => this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url, "youtube")),
-						},
-						{
-							icon: "bookmark",
-							title: "Title link",
-							desc: "Show the video's title as the link.",
-							run: () => void this.pasteTitledLink(editor, from, to, url),
-						},
-						plainLink,
-					]
-				: [
-						{
-							icon: post?.kind === "reel" ? "film" : "image",
-							title: post?.kind === "reel" ? "Embed reel" : "Embed post",
-							desc: "Preview it right inside the note.",
-							run: () => this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url, "instagram")),
-						},
-						plainLink,
-					],
-			video ? "YouTube link pasted. Show it as:" : "Instagram link pasted. Show it as:",
-		);
+		this.prompt = new PastePrompt(activeWindow, coords, choices, heading);
 	}
 
 	/** Wrap the code block in newlines when the URL was pasted mid-line. */
-	blockText(editor: Editor, from: EditorPosition, to: EditorPosition, url: string, lang: "youtube" | "instagram"): string {
+	blockText(
+		editor: Editor,
+		from: EditorPosition,
+		to: EditorPosition,
+		url: string,
+		lang: "youtube" | "instagram" | "tiktok",
+	): string {
 		const before = editor.getLine(from.line).slice(0, from.ch);
 		const after = editor.getLine(to.line).slice(to.ch);
 		return `${before.trim() ? "\n" : ""}\`\`\`${lang}\n${url}\n\`\`\`${after.trim() ? "\n" : ""}`;

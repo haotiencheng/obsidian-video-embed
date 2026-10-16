@@ -140,6 +140,62 @@ export function pastedInstagramUrl(text: string): ParsedInstagram | null {
 	return parseInstagram(t);
 }
 
+export interface ParsedTikTok {
+	/** Numeric video id; missing for short links, which are resolved through oEmbed. */
+	videoId?: string;
+	username?: string;
+	/** Normalized URL, used for the oEmbed lookup. */
+	url: string;
+}
+
+const TIKTOK_HOSTS = /(^|\.)tiktok\.com$/;
+const TIKTOK_ID = /^\d{15,21}$/;
+
+/**
+ * TikTok video URL: tiktok.com/@user/video/<id>, embed and player URLs, and
+ * short links (vm.tiktok.com/<code>, vt.tiktok.com/<code>, tiktok.com/t/<code>).
+ */
+export function parseTikTok(input: string): ParsedTikTok | null {
+	const raw = input.trim();
+	let url: URL;
+	try {
+		url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+	} catch {
+		return null;
+	}
+	if (!TIKTOK_HOSTS.test(url.hostname)) return null;
+
+	const parts = url.pathname.split("/").filter(Boolean);
+	const clean = `https://${url.hostname}${url.pathname}`;
+
+	if (/^(vm|vt)\.tiktok\.com$/.test(url.hostname) || parts[0] === "t") {
+		const code = parts[0] === "t" ? parts[1] : parts[0];
+		return code && /^[A-Za-z0-9]+$/.test(code) ? { url: clean } : null;
+	}
+
+	if (parts[0]?.startsWith("@") && parts[1] === "video" && TIKTOK_ID.test(parts[2] ?? "")) {
+		return { videoId: parts[2], username: parts[0].slice(1), url: clean };
+	}
+
+	// embed/v2/<id>, embed/<id>, player/v1/<id>, v/<id>.html
+	const id = parts[parts.length - 1]?.replace(/\.html$/, "");
+	if (["embed", "player", "v"].includes(parts[0] ?? "") && TIKTOK_ID.test(id ?? "")) {
+		return { videoId: id, url: clean };
+	}
+	return null;
+}
+
+export function buildTikTokPlayerUrl(videoId: string): string {
+	return `https://www.tiktok.com/player/v1/${videoId}?music_info=0&description=0&rel=0`;
+}
+
+/** A whole-clipboard TikTok video URL (no surrounding text), or null. */
+export function pastedTikTokUrl(text: string): ParsedTikTok | null {
+	const t = text.trim();
+	if (!t || /\s/.test(t)) return null;
+	return parseTikTok(t);
+}
+
 /** A whole-clipboard YouTube URL (no surrounding text), or null. */
 export function pastedYouTubeUrl(text: string): ParsedVideo | null {
 	const t = text.trim();

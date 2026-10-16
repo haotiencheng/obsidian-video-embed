@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import {
 	buildEmbedUrl,
 	buildInstagramEmbedUrl,
+	buildTikTokPlayerUrl,
+	parseTikTok,
+	pastedTikTokUrl,
 	parseInstagram,
 	pastedInstagramUrl,
 	escapeLinkText,
@@ -140,4 +143,23 @@ test("Instagram username from URL and author option", () => {
 	});
 	assert.equal(parseInstagram("https://www.instagram.com/reel/DZWGtwrRPIC/")?.username, undefined);
 	assert.equal(parseBlock("https://www.instagram.com/reel/DZWGtwrRPIC/\nauthor: @petitvisual")?.author, "petitvisual");
+});
+
+test("parseTikTok recognizes video, embed, player and short links", () => {
+	assert.deepEqual(parseTikTok("https://www.tiktok.com/@scout2015/video/6718335390845095173?is_from_webapp=1"), {
+		videoId: "6718335390845095173",
+		username: "scout2015",
+		url: "https://www.tiktok.com/@scout2015/video/6718335390845095173",
+	});
+	assert.equal(parseTikTok("https://www.tiktok.com/embed/v2/6718335390845095173")?.videoId, "6718335390845095173");
+	assert.equal(parseTikTok("https://www.tiktok.com/player/v1/6718335390845095173")?.videoId, "6718335390845095173");
+	assert.deepEqual(parseTikTok("https://vm.tiktok.com/ZMabc123/"), { url: "https://vm.tiktok.com/ZMabc123/" });
+	assert.deepEqual(parseTikTok("https://www.tiktok.com/t/ZTabc123/"), { url: "https://www.tiktok.com/t/ZTabc123/" });
+	assert.equal(parseTikTok("https://www.tiktok.com/@scout2015"), null);
+	assert.equal(parseTikTok("https://nottiktok.com/@a/video/6718335390845095173"), null);
+	assert.equal(
+		buildTikTokPlayerUrl("6718335390845095173"),
+		"https://www.tiktok.com/player/v1/6718335390845095173?music_info=0&description=0&rel=0",
+	);
+	assert.equal(pastedTikTokUrl("watch https://vm.tiktok.com/ZMabc123/"), null);
 });
