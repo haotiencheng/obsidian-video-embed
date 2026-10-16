@@ -11,6 +11,7 @@ import {
 	TFile,
 	requestUrl,
 	setIcon,
+	setTooltip,
 } from "obsidian";
 import { buildEmbedUrl, escapeLinkText, parseBlock, parseYouTube, pastedYouTubeUrl, setBlockWidth } from "./parse";
 import { PastePrompt } from "./paste-prompt";
@@ -107,10 +108,8 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 	/** Drag the right-edge handle to resize; double-click it to reset. Width is saved into the block. */
 	addResizeHandle(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
-		const handle = figure.createDiv({
-			cls: "youtube-embed-resize",
-			attr: { "aria-label": "Drag to resize, double-click to reset" },
-		});
+		const handle = figure.createDiv({ cls: "youtube-embed-resize" });
+		setTooltip(handle, "Drag to resize, double-click to reset", { placement: "left" });
 
 		handle.addEventListener("pointerdown", (e) => {
 			e.preventDefault();
@@ -152,9 +151,9 @@ export default class YouTubeEmbedPlugin extends Plugin {
 	addUnembedButton(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext, url: string) {
 		const button = figure.createEl("button", {
 			cls: "youtube-embed-unembed",
-			attr: { "aria-label": "Remove embed, keep the link" },
 		});
 		setIcon(button, "x");
+		setTooltip(button, "Remove embed, keep the link", { placement: "left" });
 		// mousedown would otherwise put Live Preview into edit mode for the block.
 		button.addEventListener("mousedown", (e) => {
 			e.preventDefault();
