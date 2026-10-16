@@ -493,7 +493,7 @@ export default class VideoEmbedPlugin extends Plugin {
 		};
 
 		const embed = (lang: "youtube" | "instagram" | "tiktok") => () =>
-			this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url, lang));
+			this.replacePasted(editor, from, to, url, this.blockText(editor, from, url, lang));
 
 		let heading: string;
 		let choices: PasteChoice[];
@@ -537,17 +537,19 @@ export default class VideoEmbedPlugin extends Plugin {
 		this.prompt = new PastePrompt(activeWindow, coords, choices, heading);
 	}
 
-	/** Wrap the code block in newlines when the URL was pasted mid-line. */
+	/**
+	 * Code block for the pasted URL. Starts on its own line, and always ends with a
+	 * newline so the cursor lands below the closing fence: in Live Preview a cursor
+	 * inside the block would show its source instead of the video.
+	 */
 	blockText(
 		editor: Editor,
 		from: EditorPosition,
-		to: EditorPosition,
 		url: string,
 		lang: "youtube" | "instagram" | "tiktok",
 	): string {
 		const before = editor.getLine(from.line).slice(0, from.ch);
-		const after = editor.getLine(to.line).slice(to.ch);
-		return `${before.trim() ? "\n" : ""}\`\`\`${lang}\n${url}\n\`\`\`${after.trim() ? "\n" : ""}`;
+		return `${before.trim() ? "\n" : ""}\`\`\`${lang}\n${url}\n\`\`\`\n`;
 	}
 
 	/** Swap the pasted URL for `replacement`, unless the user already edited it. */
