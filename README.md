@@ -93,6 +93,13 @@ The first line without a `key:` prefix is the URL. Every option is optional.
 - **Default video width**: starting width for 16:9 videos (default `100%`).
 - **Default width for vertical videos**: starting width for Shorts and TikTok (default `360px`).
 
+## Inspiration
+
+- **[Notion](https://www.notion.so)**: pasting a link in Notion offers to keep it as a link, turn it into a bookmark, or embed it. The paste card here follows the same idea.
+- **[Meta AI](https://www.meta.ai)**: hovering an Instagram reel link in Meta AI shows a clean, full-bleed preview with the creator's handle in the corner. The Instagram card here borrows that look.
+
+![Meta AI showing an Instagram reel preview on hover](https://raw.githubusercontent.com/haotiencheng/obsidian-video-embed/main/assets/inspiration-meta-ai.gif)
+
 ## Development
 
 ```bash
