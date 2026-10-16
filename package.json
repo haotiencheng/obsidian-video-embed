@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-video-embed",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Paste a YouTube, Instagram, or TikTok link and choose to embed it right in your note. Drag to resize, edit, or turn it back into a link.",
 	"main": "main.js",
 	"scripts": {
