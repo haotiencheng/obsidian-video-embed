@@ -152,9 +152,9 @@ export default class YouTubeEmbedPlugin extends Plugin {
 	addUnembedButton(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext, url: string) {
 		const button = figure.createEl("button", {
 			cls: "youtube-embed-unembed",
-			attr: { "aria-label": "Turn back into a plain link" },
+			attr: { "aria-label": "Remove embed, keep the link" },
 		});
-		setIcon(button, "link");
+		setIcon(button, "x");
 		// mousedown would otherwise put Live Preview into edit mode for the block.
 		button.addEventListener("mousedown", (e) => {
 			e.preventDefault();
