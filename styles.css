@@ -72,12 +72,24 @@
 	opacity: 1;
 }
 
-/* "Plain link" button: top-right on hover */
+/* Edit and remove buttons: top-right on hover */
 
-.youtube-embed button.youtube-embed-unembed {
+.youtube-embed-actions {
 	position: absolute;
 	top: 8px;
 	right: 8px;
+	display: flex;
+	gap: 4px;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.youtube-embed:hover .youtube-embed-actions {
+	opacity: 1;
+}
+
+.youtube-embed button.youtube-embed-button {
+	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -90,36 +102,28 @@
 	box-shadow: none;
 	color: #fff;
 	cursor: pointer;
-	opacity: 0;
-	transition: opacity 120ms ease, background 120ms ease;
+	transition: background 120ms ease;
 }
 
-.youtube-embed button.youtube-embed-unembed:hover {
+.youtube-embed button.youtube-embed-button:hover {
 	background: rgba(0, 0, 0, 0.85);
 }
 
-.youtube-embed button.youtube-embed-unembed svg {
+.youtube-embed button.youtube-embed-button svg {
 	width: 14px;
 	height: 14px;
 }
 
-.youtube-embed:hover button.youtube-embed-unembed {
-	opacity: 1;
-}
-
-/* Our button owns the corner; shift Live Preview's "edit block" button left of it. */
+/* Our edit button replaces Live Preview's own "edit block" button on these embeds. */
 .cm-embed-block:has(.youtube-embed) .embed-actions,
 .cm-embed-block:has(.youtube-embed) > .edit-block-button {
-	margin-right: 34px;
+	display: none;
 }
 
-/* Hover tooltips for the remove button and resize handle, shown to their left */
+/* Hover tooltips: under the buttons (right-aligned), left of the resize handle */
 
 .youtube-embed-tip {
 	position: absolute;
-	top: 50%;
-	right: calc(100% + 6px);
-	transform: translateY(-50%);
 	padding: 3px 8px;
 	border-radius: 4px;
 	background: rgba(0, 0, 0, 0.85);
@@ -132,11 +136,18 @@
 	transition: opacity 80ms ease;
 }
 
-.youtube-embed-resize .youtube-embed-tip {
-	right: 18px;
+.youtube-embed-button .youtube-embed-tip {
+	top: calc(100% + 6px);
+	right: 0;
 }
 
-.youtube-embed button.youtube-embed-unembed:hover .youtube-embed-tip,
+.youtube-embed-resize .youtube-embed-tip {
+	top: 50%;
+	right: 18px;
+	transform: translateY(-50%);
+}
+
+.youtube-embed button.youtube-embed-button:hover .youtube-embed-tip,
 .youtube-embed-resize:hover .youtube-embed-tip {
 	opacity: 1;
 }

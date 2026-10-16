@@ -18,9 +18,12 @@ Paste a YouTube link into a note. A small card asks how to show it:
 
 Hover an embed and drag the handle on its right edge. The width is saved into the block as `width: 480px`. Double-click the handle to go back to the default width.
 
-## Turn it back into a link
+## Edit or remove
 
-Hover an embed and click the small × in its top-right corner. The whole block becomes the bare URL again. Cmd/Ctrl+Z brings the embed back.
+Hover an embed. Two small buttons appear in its top-right corner:
+
+- **Pencil**: opens the block's source with the link and options selected, so you can change the link, `start`, `caption`, and so on. Works from Reading view too.
+- **×**: removes the embed and leaves the bare URL. Cmd/Ctrl+Z brings the embed back.
 
 ## Code block
 
@@ -69,10 +72,10 @@ Requires Obsidian 1.13 or later.
 
 ## Settings
 
-- **Ask what to do when pasting a YouTube link** (default on).
 - **Default video width**: starting width for 16:9 videos (default `100%`).
 - **Default width for vertical videos**: starting width for Shorts (default `360px`).
-- **Privacy-enhanced mode** (default on): loads from `youtube-nocookie.com`.
+
+Videos always load from `youtube-nocookie.com`, YouTube's privacy-enhanced domain.
 
 ## Development
 

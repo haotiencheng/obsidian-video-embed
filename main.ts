@@ -21,17 +21,13 @@ interface CodeMirrorView {
 }
 
 interface YouTubeEmbedSettings {
-	privacyMode: boolean;
 	maxWidth: string;
 	shortsMaxWidth: string;
-	pasteMenu: boolean;
 }
 
 const DEFAULT_SETTINGS: YouTubeEmbedSettings = {
-	privacyMode: true,
 	maxWidth: "100%",
 	shortsMaxWidth: "360px",
-	pasteMenu: true,
 };
 
 const MIN_WIDTH = 200;
@@ -91,7 +87,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 				src: buildEmbedUrl(video, {
 					start: opts.start,
 					end: opts.end,
-					privacyMode: this.settings.privacyMode,
+					privacyMode: true,
 				}),
 				title: opts.caption ?? "YouTube video",
 				frameborder: "0",
@@ -103,7 +99,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		});
 
 		this.addResizeHandle(figure, el, ctx);
-		this.addUnembedButton(figure, el, ctx, opts.url);
+		this.addActions(figure, el, ctx, opts.url);
 
 		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
 	}
@@ -150,24 +146,50 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		});
 	}
 
-	/** Small hover button that turns the whole block back into the plain URL. */
-	addUnembedButton(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext, url: string) {
-		const button = figure.createEl("button", {
-			cls: "youtube-embed-unembed",
-		});
-		setIcon(button, "x");
-		// Doubles as the button's accessible name.
-		button.createSpan({ cls: "youtube-embed-tip", text: "Remove embed, keep the link" });
-		// mousedown would otherwise put Live Preview into edit mode for the block.
-		button.addEventListener("mousedown", (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-		});
-		button.addEventListener("click", (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			void this.editBlock(el, ctx, () => [url]);
-		});
+	/** Hover buttons in the top-right corner: edit the block's source, or remove the embed. */
+	addActions(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext, url: string) {
+		const actions = figure.createDiv({ cls: "youtube-embed-actions" });
+		const addButton = (icon: string, tip: string, onClick: () => void) => {
+			const button = actions.createEl("button", { cls: "youtube-embed-button" });
+			setIcon(button, icon);
+			// Doubles as the button's accessible name.
+			button.createSpan({ cls: "youtube-embed-tip", text: tip });
+			// mousedown would otherwise put Live Preview into edit mode for the block.
+			button.addEventListener("mousedown", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+			});
+			button.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				onClick();
+			});
+		};
+		addButton("pencil", "Edit link and options", () => void this.editSource(el, ctx));
+		addButton("x", "Remove embed, keep the link", () => void this.editBlock(el, ctx, () => [url]));
+	}
+
+	/** Show the block's source in the editor, switching out of Reading view if needed. */
+	async editSource(el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+		const info = ctx.getSectionInfo(el);
+		const view = this.findView(ctx.sourcePath);
+		if (!info || !view) return;
+		if (view.getMode() !== "source") {
+			await view.setState({ ...view.getState(), mode: "source" }, { history: false });
+		}
+		// Like Live Preview's own edit button: select the block body, which reveals its source.
+		const editor = view.editor;
+		const first = Math.min(info.lineStart + 1, info.lineEnd);
+		const last = Math.max(first, info.lineEnd - 1);
+		editor.focus();
+		editor.setSelection({ line: first, ch: 0 }, { line: last, ch: editor.getLine(last).length });
+	}
+
+	findView(path: string): MarkdownView | undefined {
+		return this.app.workspace
+			.getLeavesOfType("markdown")
+			.map((leaf) => leaf.view)
+			.find((v): v is MarkdownView => v instanceof MarkdownView && v.file?.path === path);
 	}
 
 	saveWidth(el: HTMLElement, ctx: MarkdownPostProcessorContext, width: string | null) {
@@ -186,10 +208,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		const { lineStart, lineEnd } = info;
 
 		// Prefer the open editor so the change is undoable; fall back to editing the file.
-		const view = this.app.workspace
-			.getLeavesOfType("markdown")
-			.map((leaf) => leaf.view)
-			.find((v): v is MarkdownView => v instanceof MarkdownView && v.file?.path === file.path);
+		const view = this.findView(file.path);
 
 		if (view && view.getMode() === "source") {
 			const editor = view.editor;
@@ -216,7 +235,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 	 * card at the cursor offers to turn it into an embed or a titled link.
 	 */
 	onPaste(evt: ClipboardEvent, editor: Editor) {
-		if (!this.settings.pasteMenu || evt.defaultPrevented) return;
+		if (evt.defaultPrevented) return;
 		if (editor.somethingSelected()) return;
 		const text = evt.clipboardData?.getData("text/plain") ?? "";
 		const video = pastedYouTubeUrl(text);
@@ -296,7 +315,11 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 	async loadSettings() {
 		const saved = (await this.loadData()) as Partial<YouTubeEmbedSettings> | null;
-		this.settings = { ...DEFAULT_SETTINGS, ...saved };
+		// Pick known keys only, so options removed in older versions are dropped on next save.
+		this.settings = {
+			maxWidth: saved?.maxWidth ?? DEFAULT_SETTINGS.maxWidth,
+			shortsMaxWidth: saved?.shortsMaxWidth ?? DEFAULT_SETTINGS.shortsMaxWidth,
+		};
 	}
 
 	async saveSettings() {
@@ -317,11 +340,6 @@ class YouTubeEmbedSettingTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem<keyof YouTubeEmbedSettings>[] {
 		return [
 			{
-				name: "Ask what to do when pasting a YouTube link",
-				desc: "Shows a small menu: embed the video, use its title as the link, or keep the plain link.",
-				control: { type: "toggle", key: "pasteMenu", defaultValue: DEFAULT_SETTINGS.pasteMenu },
-			},
-			{
 				name: "Default video width",
 				desc: "Starting width for regular videos, like 100% or 640px. Drag the handle on an embed's right edge to resize just that one.",
 				aliases: ["size", "max width"],
@@ -332,12 +350,6 @@ class YouTubeEmbedSettingTab extends PluginSettingTab {
 				desc: "Starting width for vertical short videos, like 360px.",
 				aliases: ["shorts"],
 				control: { type: "text", key: "shortsMaxWidth", defaultValue: DEFAULT_SETTINGS.shortsMaxWidth, placeholder: DEFAULT_SETTINGS.shortsMaxWidth },
-			},
-			{
-				name: "Privacy-enhanced mode",
-				desc: "Load videos from the privacy-enhanced domain, so no tracking cookies are set until you press play. Reopen notes to apply.",
-				aliases: ["cookies", "nocookie"],
-				control: { type: "toggle", key: "privacyMode", defaultValue: DEFAULT_SETTINGS.privacyMode },
 			},
 		];
 	}
