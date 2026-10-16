@@ -2,6 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
 	buildEmbedUrl,
+	buildInstagramEmbedUrl,
+	parseInstagram,
+	pastedInstagramUrl,
 	escapeLinkText,
 	parseBlock,
 	parseTime,
@@ -104,4 +107,27 @@ test("buildEmbedUrl builds privacy and playlist URLs", () => {
 		buildEmbedUrl(p, { privacyMode: true }),
 		"https://www.youtube-nocookie.com/embed/videoseries?list=PLabc123&rel=0",
 	);
+});
+
+test("parseInstagram recognizes posts and reels", () => {
+	assert.deepEqual(parseInstagram("https://www.instagram.com/reel/DZWGtwrRPIC/?utm_source=meta_ai_web_copy_reel_link"), {
+		kind: "reel",
+		shortcode: "DZWGtwrRPIC",
+	});
+	assert.deepEqual(parseInstagram("instagram.com/p/CxYz123AbC/"), { kind: "p", shortcode: "CxYz123AbC" });
+	assert.equal(parseInstagram("https://www.instagram.com/reels/DZWGtwrRPIC/")?.kind, "reel");
+	assert.equal(parseInstagram("https://www.instagram.com/tv/DZWGtwrRPIC/")?.kind, "reel");
+	assert.equal(parseInstagram("https://www.instagram.com/petitvisual/p/CxYz123AbC/")?.shortcode, "CxYz123AbC");
+	assert.equal(parseInstagram("https://www.instagram.com/petitvisual/"), null);
+	assert.equal(parseInstagram("https://www.instagram.com/stories/petitvisual/123/"), null);
+	assert.equal(parseInstagram("https://notinstagram.com/p/CxYz123AbC/"), null);
+});
+
+test("buildInstagramEmbedUrl and pastedInstagramUrl", () => {
+	assert.equal(
+		buildInstagramEmbedUrl({ kind: "reel", shortcode: "DZWGtwrRPIC" }),
+		"https://www.instagram.com/reel/DZWGtwrRPIC/embed/",
+	);
+	assert.equal(pastedInstagramUrl(" https://www.instagram.com/reel/DZWGtwrRPIC/ ")?.shortcode, "DZWGtwrRPIC");
+	assert.equal(pastedInstagramUrl("look https://www.instagram.com/reel/DZWGtwrRPIC/"), null);
 });

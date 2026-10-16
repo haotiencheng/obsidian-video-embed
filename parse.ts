@@ -93,6 +93,46 @@ export function parseBlock(source: string): BlockOptions | null {
 	return opts.url ? (opts as BlockOptions) : null;
 }
 
+export interface ParsedInstagram {
+	kind: "p" | "reel";
+	shortcode: string;
+}
+
+const INSTAGRAM_HOSTS = /(^|\.)(instagram\.com|instagr\.am)$/;
+const SHORTCODE = /^[A-Za-z0-9_-]{5,}$/;
+
+/**
+ * Instagram post or reel URL, including /reels/, /tv/ and the newer
+ * instagram.com/<user>/p/<code>/ form. Profiles and stories return null.
+ */
+export function parseInstagram(input: string): ParsedInstagram | null {
+	const raw = input.trim();
+	let url: URL;
+	try {
+		url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+	} catch {
+		return null;
+	}
+	if (!INSTAGRAM_HOSTS.test(url.hostname)) return null;
+
+	const parts = url.pathname.split("/").filter(Boolean);
+	const i = parts.findIndex((p) => ["p", "reel", "reels", "tv"].includes(p));
+	const shortcode = i >= 0 ? parts[i + 1] : undefined;
+	if (!shortcode || !SHORTCODE.test(shortcode)) return null;
+	return { kind: parts[i] === "p" ? "p" : "reel", shortcode };
+}
+
+export function buildInstagramEmbedUrl(post: ParsedInstagram): string {
+	return `https://www.instagram.com/${post.kind}/${post.shortcode}/embed/`;
+}
+
+/** A whole-clipboard Instagram post or reel URL (no surrounding text), or null. */
+export function pastedInstagramUrl(text: string): ParsedInstagram | null {
+	const t = text.trim();
+	if (!t || /\s/.test(t)) return null;
+	return parseInstagram(t);
+}
+
 /** A whole-clipboard YouTube URL (no surrounding text), or null. */
 export function pastedYouTubeUrl(text: string): ParsedVideo | null {
 	const t = text.trim();

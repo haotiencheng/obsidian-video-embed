@@ -22,10 +22,11 @@ export class PastePrompt {
 		private win: Window,
 		at: { left: number; top: number; bottom: number },
 		private choices: PasteChoice[],
+		heading: string,
 	) {
 		const doc = win.document;
 		this.el = doc.body.createDiv({ cls: "youtube-paste-prompt" });
-		this.el.createDiv({ cls: "youtube-paste-prompt-heading", text: "YouTube link pasted. Show it as:" });
+		this.el.createDiv({ cls: "youtube-paste-prompt-heading", text: heading });
 
 		choices.forEach((choice, i) => {
 			const item = this.el.createDiv({ cls: "youtube-paste-prompt-item" });

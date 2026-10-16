@@ -3,6 +3,7 @@ import {
 	Editor,
 	EditorPosition,
 	MarkdownPostProcessorContext,
+	MarkdownRenderChild,
 	MarkdownView,
 	Notice,
 	Plugin,
@@ -12,7 +13,17 @@ import {
 	requestUrl,
 	setIcon,
 } from "obsidian";
-import { buildEmbedUrl, escapeLinkText, parseBlock, parseYouTube, pastedYouTubeUrl, setBlockWidth } from "./parse";
+import {
+	buildEmbedUrl,
+	buildInstagramEmbedUrl,
+	escapeLinkText,
+	parseBlock,
+	parseInstagram,
+	parseYouTube,
+	pastedInstagramUrl,
+	pastedYouTubeUrl,
+	setBlockWidth,
+} from "./parse";
 import { PastePrompt } from "./paste-prompt";
 
 /** The slice of CodeMirror's EditorView we use, exposed as `editor.cm`. */
@@ -32,14 +43,26 @@ const DEFAULT_SETTINGS: YouTubeEmbedSettings = {
 
 const MIN_WIDTH = 200;
 
+// Instagram's embed page: a 54px header, the media, then a 154px footer (likes,
+// comment box) that we clip. Widths outside 326–540px are not supported by Instagram.
+const IG_HEADER = 54;
+const IG_FOOTER = 154;
+const IG_MIN_WIDTH = 326;
+const IG_MAX_WIDTH = 540;
+const IG_DEFAULT_WIDTH = "400px";
+
 export default class YouTubeEmbedPlugin extends Plugin {
 	settings: YouTubeEmbedSettings;
 	private prompt: PastePrompt | null = null;
+	/** Instagram iframes report their content height via postMessage; keyed by iframe window. */
+	private igMeasure = new WeakMap<MessageEventSource, (height: number) => void>();
 
 	async onload() {
 		await this.loadSettings();
 
 		this.registerMarkdownCodeBlockProcessor("youtube", (source, el, ctx) => this.renderBlock(source, el, ctx));
+		this.registerMarkdownCodeBlockProcessor("instagram", (source, el, ctx) => this.renderInstagram(source, el, ctx));
+		this.registerDomEvent(window, "message", (e) => this.onInstagramMessage(e));
 
 		this.registerEvent(
 			this.app.workspace.on("editor-paste", (evt, editor) => this.onPaste(evt, editor)),
@@ -104,8 +127,89 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
 	}
 
+	renderInstagram(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+		const opts = parseBlock(source);
+		const post = opts ? parseInstagram(opts.url) : null;
+		if (!opts || !post) {
+			el.createDiv({
+				cls: "youtube-embed-error",
+				text: "Instagram embed: put an Instagram post or reel link on the first line of this block.",
+			});
+			return;
+		}
+
+		const figure = el.createEl("figure", { cls: ["youtube-embed", "is-instagram"] });
+		figure.style.setProperty("--youtube-embed-max-width", opts.width ?? IG_DEFAULT_WIDTH);
+
+		const frame = figure.createDiv({ cls: "youtube-embed-frame" });
+		const iframe = frame.createEl("iframe", {
+			attr: {
+				src: buildInstagramEmbedUrl(post),
+				title: opts.caption ?? "Instagram post",
+				frameborder: "0",
+				scrolling: "no",
+				allowtransparency: "true",
+				allow: "autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share",
+				loading: "lazy",
+			},
+		});
+
+		// Show header + media and clip the footer. Until Instagram reports its height
+		// (and again while resizing), estimate it from the width assuming 4:5 media.
+		let measured: number | null = null;
+		let measuredAt = 0;
+		const layout = () => {
+			const width = frame.clientWidth;
+			if (!width) return;
+			const full = measured !== null && Math.abs(width - measuredAt) < 2
+				? measured
+				: IG_HEADER + Math.round(width * 1.25) + IG_FOOTER;
+			iframe.style.height = `${full}px`;
+			frame.style.height = `${full - IG_FOOTER}px`;
+		};
+		iframe.addEventListener("load", () => {
+			if (!iframe.contentWindow) return;
+			this.igMeasure.set(iframe.contentWindow, (height) => {
+				measured = height;
+				measuredAt = frame.clientWidth;
+				layout();
+			});
+		});
+		const observer = new ResizeObserver(layout);
+		observer.observe(frame);
+		// Tie cleanup to this block's lifetime, not the plugin's.
+		const child = new MarkdownRenderChild(el);
+		child.register(() => observer.disconnect());
+		ctx.addChild(child);
+
+		this.addResizeHandle(figure, el, ctx, { min: IG_MIN_WIDTH, max: IG_MAX_WIDTH });
+		this.addActions(figure, el, ctx, opts.url);
+
+		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
+	}
+
+	onInstagramMessage(e: MessageEvent) {
+		if (!e.source || !/^https:\/\/www\.instagram\.com$/.test(e.origin)) return;
+		const onHeight = this.igMeasure.get(e.source);
+		if (!onHeight) return;
+		try {
+			const data = (typeof e.data === "string" ? JSON.parse(e.data) : e.data) as {
+				type?: string;
+				details?: { height?: number };
+			};
+			if (data.type === "MEASURE" && typeof data.details?.height === "number") onHeight(data.details.height);
+		} catch {
+			// Not an Instagram embed message.
+		}
+	}
+
 	/** Drag the right-edge handle to resize; double-click it to reset. Width is saved into the block. */
-	addResizeHandle(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+	addResizeHandle(
+		figure: HTMLElement,
+		el: HTMLElement,
+		ctx: MarkdownPostProcessorContext,
+		limits: { min: number; max: number } = { min: MIN_WIDTH, max: Infinity },
+	) {
 		const handle = figure.createDiv({ cls: "youtube-embed-resize" });
 		// CSS tooltip: shows instantly on hover, independent of Obsidian's delayed tooltips.
 		handle.createSpan({ cls: "youtube-embed-tip", text: "Drag to resize, double-click to reset" });
@@ -116,12 +220,12 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			const win = figure.win;
 			const startX = e.clientX;
 			const startWidth = figure.getBoundingClientRect().width;
-			const maxWidth = (el.parentElement ?? el).getBoundingClientRect().width;
+			const maxWidth = Math.min(limits.max, (el.parentElement ?? el).getBoundingClientRect().width);
 			let width = startWidth;
 			figure.addClass("is-resizing");
 
 			const onMove = (ev: PointerEvent) => {
-				width = Math.round(Math.max(MIN_WIDTH, Math.min(maxWidth, startWidth + ev.clientX - startX)));
+				width = Math.round(Math.max(limits.min, Math.min(maxWidth, startWidth + ev.clientX - startX)));
 				figure.style.setProperty("--youtube-embed-max-width", `${width}px`);
 			};
 			const onUp = () => {
@@ -239,7 +343,8 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		if (editor.somethingSelected()) return;
 		const text = evt.clipboardData?.getData("text/plain") ?? "";
 		const video = pastedYouTubeUrl(text);
-		if (!video) return;
+		const post = video ? null : pastedInstagramUrl(text);
+		if (!video && !post) return;
 
 		evt.preventDefault();
 		const url = text.trim();
@@ -251,34 +356,51 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		const coords = cm?.coordsAtPos(editor.posToOffset(to));
 		if (!coords) return;
 
+		const plainLink = {
+			icon: "link",
+			title: "Plain link",
+			desc: "Keep the URL exactly as pasted.",
+			run: () => undefined,
+		};
+
 		this.prompt?.close();
-		this.prompt = new PastePrompt(activeWindow, coords, [
-			{
-				icon: "play",
-				title: video.isShort ? "Embed Short" : "Embed video",
-				desc: "Watch it right inside the note.",
-				run: () => this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url)),
-			},
-			{
-				icon: "bookmark",
-				title: "Title link",
-				desc: "Show the video's title as the link.",
-				run: () => void this.pasteTitledLink(editor, from, to, url),
-			},
-			{
-				icon: "link",
-				title: "Plain link",
-				desc: "Keep the URL exactly as pasted.",
-				run: () => undefined,
-			},
-		]);
+		this.prompt = new PastePrompt(
+			activeWindow,
+			coords,
+			video
+				? [
+						{
+							icon: "play",
+							title: video.isShort ? "Embed Short" : "Embed video",
+							desc: "Watch it right inside the note.",
+							run: () => this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url, "youtube")),
+						},
+						{
+							icon: "bookmark",
+							title: "Title link",
+							desc: "Show the video's title as the link.",
+							run: () => void this.pasteTitledLink(editor, from, to, url),
+						},
+						plainLink,
+					]
+				: [
+						{
+							icon: post?.kind === "reel" ? "film" : "image",
+							title: post?.kind === "reel" ? "Embed reel" : "Embed post",
+							desc: "Preview it right inside the note.",
+							run: () => this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url, "instagram")),
+						},
+						plainLink,
+					],
+			video ? "YouTube link pasted. Show it as:" : "Instagram link pasted. Show it as:",
+		);
 	}
 
 	/** Wrap the code block in newlines when the URL was pasted mid-line. */
-	blockText(editor: Editor, from: EditorPosition, to: EditorPosition, url: string): string {
+	blockText(editor: Editor, from: EditorPosition, to: EditorPosition, url: string, lang: "youtube" | "instagram"): string {
 		const before = editor.getLine(from.line).slice(0, from.ch);
 		const after = editor.getLine(to.line).slice(to.ch);
-		return `${before.trim() ? "\n" : ""}\`\`\`youtube\n${url}\n\`\`\`${after.trim() ? "\n" : ""}`;
+		return `${before.trim() ? "\n" : ""}\`\`\`${lang}\n${url}\n\`\`\`${after.trim() ? "\n" : ""}`;
 	}
 
 	/** Swap the pasted URL for `replacement`, unless the user already edited it. */

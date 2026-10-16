@@ -28,6 +28,20 @@
 	border: 0;
 }
 
+/* Instagram: header + media card, footer clipped; height set from the embed's own measurement */
+
+.youtube-embed.is-instagram .youtube-embed-frame {
+	aspect-ratio: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	background: #fff;
+}
+
+.youtube-embed.is-instagram .youtube-embed-frame iframe {
+	bottom: auto;
+	height: auto;
+}
+
 .youtube-embed figcaption {
 	margin-top: 0.4em;
 	font-size: var(--font-smaller);

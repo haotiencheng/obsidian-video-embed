@@ -16,6 +16,18 @@ Paste a YouTube link into a note. A small card asks how to show it:
 
 `↑` `↓` to choose, `Enter` to apply, `Esc` or a click elsewhere keeps the plain link. If you just keep typing, the card closes and nothing is lost.
 
+## Instagram
+
+Paste an Instagram post or reel link and choose **Embed reel** (or **Embed post**). It becomes an `instagram` block that shows the creator and the media as a clean card, using Instagram's official embed. Pressing play opens the reel on Instagram, since Instagram doesn't allow playback inside other apps.
+
+````markdown
+```instagram
+https://www.instagram.com/reel/DZWGtwrRPIC/
+```
+````
+
+Instagram cards can be resized between 326px and 540px wide.
+
 ## Resize
 
 Hover an embed and drag the handle on its right edge. The width is saved into the block as `width: 480px`. Double-click the handle to go back to the default width.
