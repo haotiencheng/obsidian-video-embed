@@ -1,7 +1,7 @@
 {
 	"id": "youtube-embed",
 	"name": "Video Embed (YouTube + Instagram + TikTok)",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"minAppVersion": "1.13.0",
 	"description": "Paste a YouTube, Instagram, or TikTok link and choose to embed it right in your note. Drag to resize, edit, or turn it back into a link.",
 	"author": "haotiencheng",
