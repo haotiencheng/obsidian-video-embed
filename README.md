@@ -2,6 +2,8 @@
 
 Embed YouTube videos, Shorts, and playlists in a note, Notion style.
 
+![Paste a YouTube link, embed it, resize, edit, and turn it back into a link](https://raw.githubusercontent.com/haotiencheng/obsidian-youtube-embed/main/assets/demo.gif)
+
 ## Paste a link
 
 Paste a YouTube link into a note. A small card asks how to show it:
