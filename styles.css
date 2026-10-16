@@ -1,13 +1,13 @@
 /* Embed */
 
-.youtube-embed {
+.video-embed {
 	position: relative;
 	margin: 0.5em 0;
 	width: 100%;
-	max-width: var(--youtube-embed-max-width, 100%);
+	max-width: var(--video-embed-max-width, 100%);
 }
 
-.youtube-embed-frame {
+.video-embed-frame {
 	position: relative;
 	width: 100%;
 	aspect-ratio: 16 / 9;
@@ -16,11 +16,11 @@
 	background: var(--background-secondary);
 }
 
-.youtube-embed.is-vertical .youtube-embed-frame {
+.video-embed.is-vertical .video-embed-frame {
 	aspect-ratio: 9 / 16;
 }
 
-.youtube-embed-frame iframe {
+.video-embed-frame iframe {
 	position: absolute;
 	inset: 0;
 	width: 100%;
@@ -30,24 +30,24 @@
 
 /* Instagram: header + media card, footer clipped; height set from the embed's own measurement */
 
-.youtube-embed.is-instagram .youtube-embed-frame {
+.video-embed.is-instagram .video-embed-frame {
 	aspect-ratio: auto;
 	border-radius: 20px;
 	background: #000;
 }
 
-.youtube-embed.is-tiktok .youtube-embed-frame {
+.video-embed.is-tiktok .video-embed-frame {
 	border-radius: 20px;
 	background: #000;
 }
 
-.youtube-embed.is-instagram .youtube-embed-frame iframe {
+.video-embed.is-instagram .video-embed-frame iframe {
 	bottom: auto;
 	height: auto;
 }
 
 /* Soft fade so the creator chip reads on any image */
-.youtube-embed.is-instagram .youtube-embed-frame::after {
+.video-embed.is-instagram .video-embed-frame::after {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -60,7 +60,7 @@
 
 /* Creator overlay for Instagram and TikTok: platform badge top-left, @handle bottom-left */
 
-.youtube-embed-badge {
+.video-embed-badge {
 	position: absolute;
 	top: 12px;
 	left: 12px;
@@ -75,18 +75,18 @@
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.youtube-embed-badge.is-instagram {
+.video-embed-badge.is-instagram {
 	background: linear-gradient(45deg, #f9ce34, #ee2a7b 55%, #6228d7);
 }
 
 
-.youtube-embed-badge svg {
+.video-embed-badge svg {
 	width: 16px;
 	height: 16px;
 	color: #fff;
 }
 
-.youtube-embed-handle {
+.video-embed-handle {
 	position: absolute;
 	left: 12px;
 	bottom: 12px;
@@ -98,25 +98,25 @@
 	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
 
-.youtube-embed-handle:hover {
+.video-embed-handle:hover {
 	color: #fff;
 	text-decoration: underline;
 }
 
-.youtube-embed figcaption {
+.video-embed figcaption {
 	margin-top: 0.4em;
 	font-size: var(--font-smaller);
 	color: var(--text-muted);
 }
 
-.youtube-embed-error {
+.video-embed-error {
 	color: var(--text-error);
 	font-size: var(--font-smaller);
 }
 
 /* Resize handle: a pill on the right edge, shown on hover */
 
-.youtube-embed-resize {
+.video-embed-resize {
 	position: absolute;
 	top: 0;
 	right: 0;
@@ -128,7 +128,7 @@
 	transition: opacity 120ms ease;
 }
 
-.youtube-embed-resize::after {
+.video-embed-resize::after {
 	content: "";
 	position: absolute;
 	top: 50%;
@@ -142,14 +142,14 @@
 	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
-.youtube-embed:hover .youtube-embed-resize,
-.youtube-embed.is-resizing .youtube-embed-resize {
+.video-embed:hover .video-embed-resize,
+.video-embed.is-resizing .video-embed-resize {
 	opacity: 1;
 }
 
 /* Edit and remove buttons: top-right on hover */
 
-.youtube-embed-actions {
+.video-embed-actions {
 	position: absolute;
 	top: 8px;
 	right: 8px;
@@ -159,11 +159,11 @@
 	transition: opacity 120ms ease;
 }
 
-.youtube-embed:hover .youtube-embed-actions {
+.video-embed:hover .video-embed-actions {
 	opacity: 1;
 }
 
-.youtube-embed button.youtube-embed-button {
+.video-embed button.video-embed-button {
 	position: relative;
 	display: flex;
 	align-items: center;
@@ -180,24 +180,24 @@
 	transition: background 120ms ease;
 }
 
-.youtube-embed button.youtube-embed-button:hover {
+.video-embed button.video-embed-button:hover {
 	background: rgba(0, 0, 0, 0.85);
 }
 
-.youtube-embed button.youtube-embed-button svg {
+.video-embed button.video-embed-button svg {
 	width: 14px;
 	height: 14px;
 }
 
 /* Our edit button replaces Live Preview's own "edit block" button on these embeds. */
-.cm-embed-block:has(.youtube-embed) .embed-actions,
-.cm-embed-block:has(.youtube-embed) > .edit-block-button {
+.cm-embed-block:has(.video-embed) .embed-actions,
+.cm-embed-block:has(.video-embed) > .edit-block-button {
 	display: none;
 }
 
 /* Hover tooltips: under the buttons (right-aligned), left of the resize handle */
 
-.youtube-embed-tip {
+.video-embed-tip {
 	position: absolute;
 	padding: 3px 8px;
 	border-radius: 4px;
@@ -211,38 +211,38 @@
 	transition: opacity 80ms ease;
 }
 
-.youtube-embed-button .youtube-embed-tip {
+.video-embed-button .video-embed-tip {
 	top: calc(100% + 6px);
 	right: 0;
 }
 
-.youtube-embed-resize .youtube-embed-tip {
+.video-embed-resize .video-embed-tip {
 	top: 50%;
 	right: 18px;
 	transform: translateY(-50%);
 }
 
-.youtube-embed button.youtube-embed-button:hover .youtube-embed-tip,
-.youtube-embed-resize:hover .youtube-embed-tip {
+.video-embed button.video-embed-button:hover .video-embed-tip,
+.video-embed-resize:hover .video-embed-tip {
 	opacity: 1;
 }
 
-.youtube-embed.is-resizing .youtube-embed-tip {
+.video-embed.is-resizing .video-embed-tip {
 	opacity: 0;
 }
 
 /* The iframe would swallow pointer events mid-drag. */
-.youtube-embed.is-resizing iframe {
+.video-embed.is-resizing iframe {
 	pointer-events: none;
 }
 
-.youtube-embed.is-resizing {
+.video-embed.is-resizing {
 	user-select: none;
 }
 
 /* Paste prompt */
 
-.youtube-paste-prompt {
+.video-paste-prompt {
 	position: fixed;
 	z-index: var(--layer-menu);
 	width: 280px;
@@ -254,13 +254,13 @@
 	font-size: var(--font-ui-small);
 }
 
-.youtube-paste-prompt-heading {
+.video-paste-prompt-heading {
 	padding: 6px 8px 4px;
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }
 
-.youtube-paste-prompt-item {
+.video-paste-prompt-item {
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -269,11 +269,11 @@
 	cursor: pointer;
 }
 
-.youtube-paste-prompt-item.is-selected {
+.video-paste-prompt-item.is-selected {
 	background: var(--background-modifier-hover);
 }
 
-.youtube-paste-prompt-icon {
+.video-paste-prompt-icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -285,17 +285,17 @@
 	color: var(--text-muted);
 }
 
-.youtube-paste-prompt-icon svg {
+.video-paste-prompt-icon svg {
 	width: 16px;
 	height: 16px;
 }
 
-.youtube-paste-prompt-title {
+.video-paste-prompt-title {
 	color: var(--text-normal);
 	font-weight: var(--font-medium);
 }
 
-.youtube-paste-prompt-desc {
+.video-paste-prompt-desc {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }

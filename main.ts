@@ -34,12 +34,12 @@ interface CodeMirrorView {
 	coordsAtPos(pos: number): { left: number; top: number; bottom: number } | null;
 }
 
-interface YouTubeEmbedSettings {
+interface VideoEmbedSettings {
 	maxWidth: string;
 	shortsMaxWidth: string;
 }
 
-const DEFAULT_SETTINGS: YouTubeEmbedSettings = {
+const DEFAULT_SETTINGS: VideoEmbedSettings = {
 	maxWidth: "100%",
 	shortsMaxWidth: "360px",
 };
@@ -54,8 +54,8 @@ const IG_MIN_WIDTH = 326;
 const IG_MAX_WIDTH = 540;
 const IG_DEFAULT_WIDTH = "400px";
 
-export default class YouTubeEmbedPlugin extends Plugin {
-	settings: YouTubeEmbedSettings;
+export default class VideoEmbedPlugin extends Plugin {
+	settings: VideoEmbedSettings;
 	private prompt: PastePrompt | null = null;
 	/** Instagram iframes report their content height via postMessage; keyed by iframe window. */
 	private igMeasure = new WeakMap<MessageEventSource, (height: number) => void>();
@@ -78,7 +78,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			editorCallback: (editor: Editor) => this.insertBlock(editor),
 		});
 
-		this.addSettingTab(new YouTubeEmbedSettingTab(this.app, this));
+		this.addSettingTab(new VideoEmbedSettingTab(this.app, this));
 	}
 
 	onunload() {
@@ -90,7 +90,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		const video = opts ? parseYouTube(opts.url) : null;
 		if (!opts || !video) {
 			el.createDiv({
-				cls: "youtube-embed-error",
+				cls: "video-embed-error",
 				text: "YouTube embed: put a YouTube link on the first line of this block.",
 			});
 			return;
@@ -98,17 +98,17 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 		const vertical = opts.vertical ?? video.isShort;
 		const figure = el.createEl("figure", {
-			cls: ["youtube-embed", vertical ? "is-vertical" : "is-horizontal"],
+			cls: ["video-embed", vertical ? "is-vertical" : "is-horizontal"],
 		});
 		figure.style.setProperty(
-			"--youtube-embed-max-width",
+			"--video-embed-max-width",
 			opts.width ??
 				(vertical
 					? this.settings.shortsMaxWidth.trim() || DEFAULT_SETTINGS.shortsMaxWidth
 					: this.settings.maxWidth.trim() || DEFAULT_SETTINGS.maxWidth),
 		);
 
-		const frame = figure.createDiv({ cls: "youtube-embed-frame" });
+		const frame = figure.createDiv({ cls: "video-embed-frame" });
 		frame.createEl("iframe", {
 			attr: {
 				src: buildEmbedUrl(video, {
@@ -136,16 +136,16 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		const post = opts ? parseInstagram(opts.url) : null;
 		if (!opts || !post) {
 			el.createDiv({
-				cls: "youtube-embed-error",
+				cls: "video-embed-error",
 				text: "Instagram embed: put an Instagram post or reel link on the first line of this block.",
 			});
 			return;
 		}
 
-		const figure = el.createEl("figure", { cls: ["youtube-embed", "is-instagram"] });
-		figure.style.setProperty("--youtube-embed-max-width", opts.width ?? IG_DEFAULT_WIDTH);
+		const figure = el.createEl("figure", { cls: ["video-embed", "is-instagram"] });
+		figure.style.setProperty("--video-embed-max-width", opts.width ?? IG_DEFAULT_WIDTH);
 
-		const frame = figure.createDiv({ cls: "youtube-embed-frame" });
+		const frame = figure.createDiv({ cls: "video-embed-frame" });
 		const iframe = frame.createEl("iframe", {
 			attr: {
 				src: buildInstagramEmbedUrl(post),
@@ -208,18 +208,18 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		const video = opts ? parseTikTok(opts.url) : null;
 		if (!opts || !video) {
 			el.createDiv({
-				cls: "youtube-embed-error",
+				cls: "video-embed-error",
 				text: "TikTok embed: put a TikTok video link on the first line of this block.",
 			});
 			return;
 		}
 
-		const figure = el.createEl("figure", { cls: ["youtube-embed", "is-tiktok", "is-vertical"] });
+		const figure = el.createEl("figure", { cls: ["video-embed", "is-tiktok", "is-vertical"] });
 		figure.style.setProperty(
-			"--youtube-embed-max-width",
+			"--video-embed-max-width",
 			opts.width ?? (this.settings.shortsMaxWidth.trim() || DEFAULT_SETTINGS.shortsMaxWidth),
 		);
-		const frame = figure.createDiv({ cls: "youtube-embed-frame" });
+		const frame = figure.createDiv({ cls: "video-embed-frame" });
 
 		// TikTok's player draws its own creator header and logo, so no overlay here.
 		const show = (videoId: string) => {
@@ -241,7 +241,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			// Short links don't contain the video id; TikTok's public oEmbed resolves it.
 			void this.resolveTikTok(video.url).then((videoId) => {
 				if (videoId) show(videoId);
-				else frame.createDiv({ cls: "youtube-embed-error", text: "Could not load this TikTok link." });
+				else frame.createDiv({ cls: "video-embed-error", text: "Could not load this TikTok link." });
 			});
 		}
 
@@ -272,7 +272,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 	) {
 		const external = { target: "_blank", rel: "noopener" };
 		const badge = frame.createEl("a", {
-			cls: ["youtube-embed-badge", `is-${info.platform}`],
+			cls: ["video-embed-badge", `is-${info.platform}`],
 			href: info.postUrl,
 			attr: { ...external, "aria-label": "Open the original post" },
 		});
@@ -280,7 +280,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 		if (info.author) {
 			frame.createEl("a", {
-				cls: "youtube-embed-handle",
+				cls: "video-embed-handle",
 				text: `@${info.author}`,
 				href: info.authorUrl ?? info.postUrl,
 				attr: external,
@@ -320,9 +320,9 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		ctx: MarkdownPostProcessorContext,
 		limits: { min: number; max: number } = { min: MIN_WIDTH, max: Infinity },
 	) {
-		const handle = figure.createDiv({ cls: "youtube-embed-resize" });
+		const handle = figure.createDiv({ cls: "video-embed-resize" });
 		// CSS tooltip: shows instantly on hover, independent of Obsidian's delayed tooltips.
-		handle.createSpan({ cls: "youtube-embed-tip", text: "Drag to resize, double-click to reset" });
+		handle.createSpan({ cls: "video-embed-tip", text: "Drag to resize, double-click to reset" });
 
 		handle.addEventListener("pointerdown", (e) => {
 			e.preventDefault();
@@ -336,7 +336,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 			const onMove = (ev: PointerEvent) => {
 				width = Math.round(Math.max(limits.min, Math.min(maxWidth, startWidth + ev.clientX - startX)));
-				figure.style.setProperty("--youtube-embed-max-width", `${width}px`);
+				figure.style.setProperty("--video-embed-max-width", `${width}px`);
 			};
 			const onUp = () => {
 				win.removeEventListener("pointermove", onMove);
@@ -362,12 +362,12 @@ export default class YouTubeEmbedPlugin extends Plugin {
 
 	/** Hover buttons in the top-right corner: edit the block's source, or remove the embed. */
 	addActions(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext, url: string) {
-		const actions = figure.createDiv({ cls: "youtube-embed-actions" });
+		const actions = figure.createDiv({ cls: "video-embed-actions" });
 		const addButton = (icon: string, tip: string, onClick: () => void) => {
-			const button = actions.createEl("button", { cls: "youtube-embed-button" });
+			const button = actions.createEl("button", { cls: "video-embed-button" });
 			setIcon(button, icon);
 			// Doubles as the button's accessible name.
-			button.createSpan({ cls: "youtube-embed-tip", text: tip });
+			button.createSpan({ cls: "video-embed-tip", text: tip });
 			// mousedown would otherwise put Live Preview into edit mode for the block.
 			button.addEventListener("mousedown", (e) => {
 				e.preventDefault();
@@ -565,7 +565,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const saved = (await this.loadData()) as Partial<YouTubeEmbedSettings> | null;
+		const saved = (await this.loadData()) as Partial<VideoEmbedSettings> | null;
 		// Pick known keys only, so options removed in older versions are dropped on next save.
 		this.settings = {
 			maxWidth: saved?.maxWidth ?? DEFAULT_SETTINGS.maxWidth,
@@ -578,17 +578,17 @@ export default class YouTubeEmbedPlugin extends Plugin {
 	}
 }
 
-class YouTubeEmbedSettingTab extends PluginSettingTab {
-	plugin: YouTubeEmbedPlugin;
+class VideoEmbedSettingTab extends PluginSettingTab {
+	plugin: VideoEmbedPlugin;
 
-	constructor(app: App, plugin: YouTubeEmbedPlugin) {
+	constructor(app: App, plugin: VideoEmbedPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	// Declarative settings: rendered by Obsidian and indexed by settings search.
 	// PluginSettingTab reads and saves `plugin.settings[key]` for each control.
-	getSettingDefinitions(): SettingDefinitionItem<keyof YouTubeEmbedSettings>[] {
+	getSettingDefinitions(): SettingDefinitionItem<keyof VideoEmbedSettings>[] {
 		return [
 			{
 				name: "Default video width",

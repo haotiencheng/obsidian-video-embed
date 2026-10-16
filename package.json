@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-youtube-embed",
+	"name": "obsidian-video-embed",
 	"version": "0.1.2",
-	"description": "Embed YouTube videos, Shorts, and playlists in Obsidian with a youtube code block.",
+	"description": "Paste a YouTube, Instagram, or TikTok link and choose to embed it right in your note. Drag to resize, edit, or turn it back into a link.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -14,6 +14,8 @@
 		"obsidian",
 		"obsidian-plugin",
 		"youtube",
+		"instagram",
+		"tiktok",
 		"embed"
 	],
 	"author": "haotiencheng",

@@ -25,15 +25,15 @@ export class PastePrompt {
 		heading: string,
 	) {
 		const doc = win.document;
-		this.el = doc.body.createDiv({ cls: "youtube-paste-prompt" });
-		this.el.createDiv({ cls: "youtube-paste-prompt-heading", text: heading });
+		this.el = doc.body.createDiv({ cls: "video-paste-prompt" });
+		this.el.createDiv({ cls: "video-paste-prompt-heading", text: heading });
 
 		choices.forEach((choice, i) => {
-			const item = this.el.createDiv({ cls: "youtube-paste-prompt-item" });
-			setIcon(item.createDiv({ cls: "youtube-paste-prompt-icon" }), choice.icon);
-			const text = item.createDiv({ cls: "youtube-paste-prompt-text" });
-			text.createDiv({ cls: "youtube-paste-prompt-title", text: choice.title });
-			text.createDiv({ cls: "youtube-paste-prompt-desc", text: choice.desc });
+			const item = this.el.createDiv({ cls: "video-paste-prompt-item" });
+			setIcon(item.createDiv({ cls: "video-paste-prompt-icon" }), choice.icon);
+			const text = item.createDiv({ cls: "video-paste-prompt-text" });
+			text.createDiv({ cls: "video-paste-prompt-title", text: choice.title });
+			text.createDiv({ cls: "video-paste-prompt-desc", text: choice.desc });
 			// mousedown keeps focus in the editor; click runs the choice.
 			item.addEventListener("mousedown", (e) => e.preventDefault());
 			item.addEventListener("mouseenter", () => this.select(i));
