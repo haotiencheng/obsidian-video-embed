@@ -40,14 +40,6 @@ export class PastePrompt {
 			this.items.push(item);
 		});
 
-		const hint = this.el.createDiv({ cls: "youtube-paste-prompt-hint" });
-		hint.createEl("kbd", { text: "↑↓" });
-		hint.append(" choose  ");
-		hint.createEl("kbd", { text: "Enter" });
-		hint.append(" apply  ");
-		hint.createEl("kbd", { text: "Esc" });
-		hint.append(" keep link");
-
 		this.select(0);
 		this.place(at);
 
