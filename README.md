@@ -61,13 +61,17 @@ Accepted URLs: `youtube.com/watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/liv
 
 ## Command
 
-**Insert YouTube embed**: inserts a `youtube` block at the cursor, pre-filled with the clipboard URL if it is a YouTube link.
+**Insert video**: inserts an empty `youtube` block at the cursor, ready for a link.
+
+The plugin never reads your clipboard on its own. It only looks at what you paste, at the moment you paste it, to check whether it is a lone YouTube link.
+
+Requires Obsidian 1.13 or later.
 
 ## Settings
 
 - **Ask what to do when pasting a YouTube link** (default on).
 - **Default video width**: starting width for 16:9 videos (default `100%`).
-- **Default Shorts width**: starting width for vertical videos (default `360px`).
+- **Default width for vertical videos**: starting width for Shorts (default `360px`).
 - **Privacy-enhanced mode** (default on): loads from `youtube-nocookie.com`.
 
 ## Development

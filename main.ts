@@ -7,7 +7,7 @@ import {
 	Notice,
 	Plugin,
 	PluginSettingTab,
-	Setting,
+	SettingDefinitionItem,
 	TFile,
 	requestUrl,
 	setIcon,
@@ -50,9 +50,9 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		);
 
 		this.addCommand({
-			id: "insert-youtube-embed",
-			name: "Insert YouTube embed",
-			editorCallback: (editor: Editor) => this.insertEmbed(editor),
+			id: "insert-block",
+			name: "Insert video",
+			editorCallback: (editor: Editor) => this.insertBlock(editor),
 		});
 
 		this.addSettingTab(new YouTubeEmbedSettingTab(this.app, this));
@@ -79,7 +79,10 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		});
 		figure.style.setProperty(
 			"--youtube-embed-max-width",
-			opts.width ?? (vertical ? this.settings.shortsMaxWidth : this.settings.maxWidth),
+			opts.width ??
+				(vertical
+					? this.settings.shortsMaxWidth.trim() || DEFAULT_SETTINGS.shortsMaxWidth
+					: this.settings.maxWidth.trim() || DEFAULT_SETTINGS.maxWidth),
 		);
 
 		const frame = figure.createDiv({ cls: "youtube-embed-frame" });
@@ -283,26 +286,17 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		}
 	}
 
-	async insertEmbed(editor: Editor) {
-		let url = "";
-		try {
-			const clip = (await navigator.clipboard.readText()).trim();
-			if (parseYouTube(clip)) url = clip;
-		} catch {
-			// Clipboard access can be denied; fall back to an empty block.
-		}
-
+	/** Insert an empty youtube block and put the cursor where the link goes. */
+	insertBlock(editor: Editor) {
 		const cursor = editor.getCursor();
 		const prefix = cursor.ch === 0 ? "" : "\n";
-		editor.replaceRange(`${prefix}\`\`\`youtube\n${url}\n\`\`\`\n`, cursor);
-		if (!url) {
-			editor.setCursor({ line: cursor.line + (prefix ? 2 : 1), ch: 0 });
-			new Notice("No YouTube link in your clipboard. Paste one into the block.");
-		}
+		editor.replaceRange(`${prefix}\`\`\`youtube\n\n\`\`\`\n`, cursor);
+		editor.setCursor({ line: cursor.line + (prefix ? 2 : 1), ch: 0 });
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const saved = (await this.loadData()) as Partial<YouTubeEmbedSettings> | null;
+		this.settings = { ...DEFAULT_SETTINGS, ...saved };
 	}
 
 	async saveSettings() {
@@ -318,48 +312,33 @@ class YouTubeEmbedSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName("Ask what to do when pasting a YouTube link")
-			.setDesc("Shows a small menu: embed the video, use its title as the link, or keep the plain link.")
-			.addToggle((t) =>
-				t.setValue(this.plugin.settings.pasteMenu).onChange(async (value) => {
-					this.plugin.settings.pasteMenu = value;
-					await this.plugin.saveSettings();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Default video width")
-			.setDesc("Starting width for regular videos, like 100% or 640px. Drag the handle on an embed's right edge to resize just that one.")
-			.addText((t) =>
-				t.setValue(this.plugin.settings.maxWidth).onChange(async (value) => {
-					this.plugin.settings.maxWidth = value.trim() || DEFAULT_SETTINGS.maxWidth;
-					await this.plugin.saveSettings();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Default Shorts width")
-			.setDesc("Starting width for vertical Shorts, like 360px.")
-			.addText((t) =>
-				t.setValue(this.plugin.settings.shortsMaxWidth).onChange(async (value) => {
-					this.plugin.settings.shortsMaxWidth = value.trim() || DEFAULT_SETTINGS.shortsMaxWidth;
-					await this.plugin.saveSettings();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Privacy-enhanced mode")
-			.setDesc("Load videos from youtube-nocookie.com, so YouTube doesn't set tracking cookies until you press play. Reopen notes to apply.")
-			.addToggle((t) =>
-				t.setValue(this.plugin.settings.privacyMode).onChange(async (value) => {
-					this.plugin.settings.privacyMode = value;
-					await this.plugin.saveSettings();
-				}),
-			);
+	// Declarative settings: rendered by Obsidian and indexed by settings search.
+	// PluginSettingTab reads and saves `plugin.settings[key]` for each control.
+	getSettingDefinitions(): SettingDefinitionItem<keyof YouTubeEmbedSettings>[] {
+		return [
+			{
+				name: "Ask what to do when pasting a YouTube link",
+				desc: "Shows a small menu: embed the video, use its title as the link, or keep the plain link.",
+				control: { type: "toggle", key: "pasteMenu", defaultValue: DEFAULT_SETTINGS.pasteMenu },
+			},
+			{
+				name: "Default video width",
+				desc: "Starting width for regular videos, like 100% or 640px. Drag the handle on an embed's right edge to resize just that one.",
+				aliases: ["size", "max width"],
+				control: { type: "text", key: "maxWidth", defaultValue: DEFAULT_SETTINGS.maxWidth, placeholder: DEFAULT_SETTINGS.maxWidth },
+			},
+			{
+				name: "Default width for vertical videos",
+				desc: "Starting width for vertical short videos, like 360px.",
+				aliases: ["shorts"],
+				control: { type: "text", key: "shortsMaxWidth", defaultValue: DEFAULT_SETTINGS.shortsMaxWidth, placeholder: DEFAULT_SETTINGS.shortsMaxWidth },
+			},
+			{
+				name: "Privacy-enhanced mode",
+				desc: "Load videos from the privacy-enhanced domain, so no tracking cookies are set until you press play. Reopen notes to apply.",
+				aliases: ["cookies", "nocookie"],
+				control: { type: "toggle", key: "privacyMode", defaultValue: DEFAULT_SETTINGS.privacyMode },
+			},
+		];
 	}
 }
