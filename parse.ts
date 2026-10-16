@@ -100,11 +100,11 @@ export function pastedYouTubeUrl(text: string): ParsedVideo | null {
 	return parseYouTube(t);
 }
 
-/** Raw HTML iframe markup, which Obsidian renders without this plugin. */
-export function buildIframeHtml(video: ParsedVideo, privacyMode: boolean): string {
-	const src = buildEmbedUrl(video, { privacyMode });
-	const [w, h] = video.isShort ? [315, 560] : [560, 315];
-	return `<iframe width="${w}" height="${h}" src="${src}" title="YouTube video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+/** Rewrite a block body so it has exactly one `width:` line, or none when width is null. */
+export function setBlockWidth(body: string[], width: string | null): string[] {
+	const kept = body.filter((line) => !/^\s*width\s*:/i.test(line));
+	while (kept.length && !kept[kept.length - 1].trim()) kept.pop();
+	return width ? [...kept, `width: ${width}`] : kept;
 }
 
 /** Escape characters that would break a markdown link label. */

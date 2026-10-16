@@ -2,12 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
 	buildEmbedUrl,
-	buildIframeHtml,
 	escapeLinkText,
 	parseBlock,
 	parseTime,
 	parseYouTube,
 	pastedYouTubeUrl,
+	setBlockWidth,
 } from "../parse.ts";
 
 test("pastedYouTubeUrl only fires on a lone YouTube URL", () => {
@@ -19,11 +19,14 @@ test("pastedYouTubeUrl only fires on a lone YouTube URL", () => {
 	assert.equal(pastedYouTubeUrl(""), null);
 });
 
-test("buildIframeHtml sizes Shorts vertically", () => {
-	const short = buildIframeHtml(parseYouTube("https://youtube.com/shorts/TfTAB6F-kW0")!, true);
-	assert.match(short, /^<iframe width="315" height="560" src="https:\/\/www\.youtube-nocookie\.com\/embed\/TfTAB6F-kW0\?rel=0"/);
-	const video = buildIframeHtml(parseYouTube("https://youtu.be/TfTAB6F-kW0")!, false);
-	assert.match(video, /width="560" height="315" src="https:\/\/www\.youtube\.com\//);
+test("setBlockWidth replaces, adds, or removes the width line", () => {
+	assert.deepEqual(setBlockWidth(["https://youtu.be/x", "width: 300px", "caption: hi"], "480px"), [
+		"https://youtu.be/x",
+		"caption: hi",
+		"width: 480px",
+	]);
+	assert.deepEqual(setBlockWidth(["https://youtu.be/x", ""], "320px"), ["https://youtu.be/x", "width: 320px"]);
+	assert.deepEqual(setBlockWidth(["https://youtu.be/x", "Width: 300px"], null), ["https://youtu.be/x"]);
 });
 
 test("escapeLinkText escapes brackets", () => {

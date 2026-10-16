@@ -1,4 +1,7 @@
+/* Embed */
+
 .youtube-embed {
+	position: relative;
 	margin: 0.5em 0;
 	width: 100%;
 	max-width: var(--youtube-embed-max-width, 100%);
@@ -34,4 +37,119 @@
 .youtube-embed-error {
 	color: var(--text-error);
 	font-size: var(--font-smaller);
+}
+
+/* Resize handle: a pill on the right edge, shown on hover */
+
+.youtube-embed-resize {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 20px;
+	height: 100%;
+	cursor: ew-resize;
+	touch-action: none;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.youtube-embed-resize::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	right: 7px;
+	width: 6px;
+	height: 48px;
+	max-height: 40%;
+	transform: translateY(-50%);
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.9);
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.youtube-embed:hover .youtube-embed-resize,
+.youtube-embed.is-resizing .youtube-embed-resize {
+	opacity: 1;
+}
+
+/* The iframe would swallow pointer events mid-drag. */
+.youtube-embed.is-resizing iframe {
+	pointer-events: none;
+}
+
+.youtube-embed.is-resizing {
+	user-select: none;
+}
+
+/* Paste prompt */
+
+.youtube-paste-prompt {
+	position: fixed;
+	z-index: var(--layer-menu);
+	width: 280px;
+	padding: 4px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-s);
+	font-size: var(--font-ui-small);
+}
+
+.youtube-paste-prompt-heading {
+	padding: 6px 8px 4px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.youtube-paste-prompt-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 8px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.youtube-paste-prompt-item.is-selected {
+	background: var(--background-modifier-hover);
+}
+
+.youtube-paste-prompt-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 28px;
+	height: 28px;
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+}
+
+.youtube-paste-prompt-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.youtube-paste-prompt-title {
+	color: var(--text-normal);
+	font-weight: var(--font-medium);
+}
+
+.youtube-paste-prompt-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.youtube-paste-prompt-hint {
+	margin-top: 4px;
+	padding: 6px 8px 4px;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	white-space: pre;
+}
+
+.youtube-paste-prompt-hint kbd {
+	font-size: inherit;
 }

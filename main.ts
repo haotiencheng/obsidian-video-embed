@@ -2,26 +2,22 @@ import {
 	App,
 	Editor,
 	EditorPosition,
-	Menu,
+	MarkdownPostProcessorContext,
+	MarkdownView,
 	Notice,
 	Plugin,
 	PluginSettingTab,
 	Setting,
+	TFile,
 	requestUrl,
 } from "obsidian";
+import { buildEmbedUrl, escapeLinkText, parseBlock, parseYouTube, pastedYouTubeUrl, setBlockWidth } from "./parse";
+import { PastePrompt } from "./paste-prompt";
 
 /** The slice of CodeMirror's EditorView we use, exposed as `editor.cm`. */
 interface CodeMirrorView {
-	coordsAtPos(pos: number): { left: number; bottom: number } | null;
+	coordsAtPos(pos: number): { left: number; top: number; bottom: number } | null;
 }
-import {
-	buildEmbedUrl,
-	buildIframeHtml,
-	escapeLinkText,
-	parseBlock,
-	parseYouTube,
-	pastedYouTubeUrl,
-} from "./parse";
 
 interface YouTubeEmbedSettings {
 	privacyMode: boolean;
@@ -37,13 +33,16 @@ const DEFAULT_SETTINGS: YouTubeEmbedSettings = {
 	pasteMenu: true,
 };
 
+const MIN_WIDTH = 200;
+
 export default class YouTubeEmbedPlugin extends Plugin {
 	settings: YouTubeEmbedSettings;
+	private prompt: PastePrompt | null = null;
 
 	async onload() {
 		await this.loadSettings();
 
-		this.registerMarkdownCodeBlockProcessor("youtube", (source, el) => this.renderBlock(source, el));
+		this.registerMarkdownCodeBlockProcessor("youtube", (source, el, ctx) => this.renderBlock(source, el, ctx));
 
 		this.registerEvent(
 			this.app.workspace.on("editor-paste", (evt, editor) => this.onPaste(evt, editor)),
@@ -58,13 +57,17 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		this.addSettingTab(new YouTubeEmbedSettingTab(this.app, this));
 	}
 
-	renderBlock(source: string, el: HTMLElement) {
+	onunload() {
+		this.prompt?.close();
+	}
+
+	renderBlock(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
 		const opts = parseBlock(source);
 		const video = opts ? parseYouTube(opts.url) : null;
 		if (!opts || !video) {
 			el.createDiv({
 				cls: "youtube-embed-error",
-				text: "YouTube embed: no valid YouTube URL or video id found.",
+				text: "YouTube embed: put a YouTube link on the first line of this block.",
 			});
 			return;
 		}
@@ -95,12 +98,90 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			},
 		});
 
+		this.addResizeHandle(figure, el, ctx);
+
 		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
+	}
+
+	/** Drag the right-edge handle to resize; double-click it to reset. Width is saved into the block. */
+	addResizeHandle(figure: HTMLElement, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+		const handle = figure.createDiv({
+			cls: "youtube-embed-resize",
+			attr: { "aria-label": "Drag to resize, double-click to reset" },
+		});
+
+		handle.addEventListener("pointerdown", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			const win = figure.win;
+			const startX = e.clientX;
+			const startWidth = figure.getBoundingClientRect().width;
+			const maxWidth = (el.parentElement ?? el).getBoundingClientRect().width;
+			let width = startWidth;
+			figure.addClass("is-resizing");
+
+			const onMove = (ev: PointerEvent) => {
+				width = Math.round(Math.max(MIN_WIDTH, Math.min(maxWidth, startWidth + ev.clientX - startX)));
+				figure.style.setProperty("--youtube-embed-max-width", `${width}px`);
+			};
+			const onUp = () => {
+				win.removeEventListener("pointermove", onMove);
+				win.removeEventListener("pointerup", onUp);
+				win.removeEventListener("pointercancel", onUp);
+				figure.removeClass("is-resizing");
+				if (Math.abs(width - startWidth) >= 2) {
+					void this.saveWidth(el, ctx, width >= maxWidth - 2 ? "100%" : `${width}px`);
+				}
+			};
+			win.addEventListener("pointermove", onMove);
+			win.addEventListener("pointerup", onUp);
+			win.addEventListener("pointercancel", onUp);
+		});
+
+		handle.addEventListener("click", (e) => e.stopPropagation());
+		handle.addEventListener("dblclick", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			void this.saveWidth(el, ctx, null);
+		});
+	}
+
+	async saveWidth(el: HTMLElement, ctx: MarkdownPostProcessorContext, width: string | null) {
+		const info = ctx.getSectionInfo(el);
+		const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
+		if (!info || !(file instanceof TFile)) return;
+		const { lineStart, lineEnd } = info;
+
+		// Prefer the open editor so the change is undoable; fall back to editing the file.
+		const view = this.app.workspace
+			.getLeavesOfType("markdown")
+			.map((leaf) => leaf.view)
+			.find((v): v is MarkdownView => v instanceof MarkdownView && v.file?.path === file.path);
+
+		if (view && view.getMode() === "source") {
+			const editor = view.editor;
+			const body: string[] = [];
+			for (let line = lineStart + 1; line < lineEnd; line++) body.push(editor.getLine(line));
+			const next = setBlockWidth(body, width);
+			editor.replaceRange(
+				next.map((line) => `${line}\n`).join(""),
+				{ line: lineStart + 1, ch: 0 },
+				{ line: lineEnd, ch: 0 },
+			);
+			return;
+		}
+
+		await this.app.vault.process(file, (text) => {
+			const lines = text.split("\n");
+			const body = lines.slice(lineStart + 1, lineEnd);
+			lines.splice(lineStart + 1, body.length, ...setBlockWidth(body, width));
+			return lines.join("\n");
+		});
 	}
 
 	/**
 	 * Notion-style paste: a lone YouTube URL is pasted as plain text first, then a
-	 * menu at the cursor offers to turn it into an embed, iframe, or titled link.
+	 * card at the cursor offers to turn it into an embed or a titled link.
 	 */
 	onPaste(evt: ClipboardEvent, editor: Editor) {
 		if (!this.settings.pasteMenu || evt.defaultPrevented) return;
@@ -119,39 +200,27 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		const coords = cm?.coordsAtPos(editor.posToOffset(to));
 		if (!coords) return;
 
-		const menu = new Menu();
-		menu.setUseNativeMenu(false);
-		menu.addItem((i) => i.setTitle("Dismiss").setIcon("x").onClick(() => menu.hide()));
-		menu.addItem((i) =>
-			i
-				.setTitle(video.isShort ? "Embed Short" : "Embed video")
-				.setIcon("play")
-				.onClick(() => this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url))),
-		);
-		menu.addItem((i) =>
-			i
-				.setTitle("Embed as HTML iframe")
-				.setIcon("code")
-				.onClick(() =>
-					this.replacePasted(editor, from, to, url, buildIframeHtml(video, this.settings.privacyMode)),
-				),
-		);
-		menu.addItem((i) =>
-			i
-				.setTitle("Link with title")
-				.setIcon("link")
-				.onClick(() => this.pasteTitledLink(editor, from, to, url)),
-		);
-		// Like Notion: typing after the paste closes the menu and the keys reach the editor.
-		const win = activeWindow;
-		const dismissOnType = (e: KeyboardEvent) => {
-			if (e.metaKey || e.ctrlKey || e.altKey) return;
-			if (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete") menu.hide();
-		};
-		win.addEventListener("keydown", dismissOnType, true);
-		menu.onHide(() => win.removeEventListener("keydown", dismissOnType, true));
-
-		menu.showAtPosition({ x: coords.left, y: coords.bottom + 4 }, win.document);
+		this.prompt?.close();
+		this.prompt = new PastePrompt(activeWindow, coords, [
+			{
+				icon: "play",
+				title: video.isShort ? "Embed Short" : "Embed video",
+				desc: "Watch it right inside the note.",
+				run: () => this.replacePasted(editor, from, to, url, this.blockText(editor, from, to, url)),
+			},
+			{
+				icon: "bookmark",
+				title: "Title link",
+				desc: "Show the video's title as the link.",
+				run: () => void this.pasteTitledLink(editor, from, to, url),
+			},
+			{
+				icon: "link",
+				title: "Plain link",
+				desc: "Keep the URL exactly as pasted.",
+				run: () => undefined,
+			},
+		]);
 	}
 
 	/** Wrap the code block in newlines when the URL was pasted mid-line. */
@@ -181,7 +250,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			if (!title) throw new Error("no title");
 			this.replacePasted(editor, from, to, url, `[${escapeLinkText(title)}](${url})`);
 		} catch {
-			new Notice("Could not fetch the video title.");
+			new Notice("Could not fetch the video title, so the link was kept.");
 		}
 	}
 
@@ -199,7 +268,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		editor.replaceRange(`${prefix}\`\`\`youtube\n${url}\n\`\`\`\n`, cursor);
 		if (!url) {
 			editor.setCursor({ line: cursor.line + (prefix ? 2 : 1), ch: 0 });
-			new Notice("No YouTube URL in clipboard. Paste one into the block.");
+			new Notice("No YouTube link in your clipboard. Paste one into the block.");
 		}
 	}
 
@@ -225,8 +294,8 @@ class YouTubeEmbedSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("Show menu on paste")
-			.setDesc("When you paste a YouTube link, offer to embed it, paste an iframe, or add its title.")
+			.setName("Ask what to do when pasting a YouTube link")
+			.setDesc("Shows a small menu: embed the video, use its title as the link, or keep the plain link.")
 			.addToggle((t) =>
 				t.setValue(this.plugin.settings.pasteMenu).onChange(async (value) => {
 					this.plugin.settings.pasteMenu = value;
@@ -235,18 +304,8 @@ class YouTubeEmbedSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Privacy-enhanced mode")
-			.setDesc("Load embeds from youtube-nocookie.com. Re-open notes to apply.")
-			.addToggle((t) =>
-				t.setValue(this.plugin.settings.privacyMode).onChange(async (value) => {
-					this.plugin.settings.privacyMode = value;
-					await this.plugin.saveSettings();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Max width")
-			.setDesc("CSS width cap for regular (16:9) videos, e.g. 100% or 640px.")
+			.setName("Default video width")
+			.setDesc("Starting width for regular videos, like 100% or 640px. Drag the handle on an embed's right edge to resize just that one.")
 			.addText((t) =>
 				t.setValue(this.plugin.settings.maxWidth).onChange(async (value) => {
 					this.plugin.settings.maxWidth = value.trim() || DEFAULT_SETTINGS.maxWidth;
@@ -255,11 +314,21 @@ class YouTubeEmbedSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Shorts max width")
-			.setDesc("CSS width cap for vertical (9:16) Shorts, e.g. 360px.")
+			.setName("Default Shorts width")
+			.setDesc("Starting width for vertical Shorts, like 360px.")
 			.addText((t) =>
 				t.setValue(this.plugin.settings.shortsMaxWidth).onChange(async (value) => {
 					this.plugin.settings.shortsMaxWidth = value.trim() || DEFAULT_SETTINGS.shortsMaxWidth;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Privacy-enhanced mode")
+			.setDesc("Load videos from youtube-nocookie.com, so YouTube doesn't set tracking cookies until you press play. Reopen notes to apply.")
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.privacyMode).onChange(async (value) => {
+					this.plugin.settings.privacyMode = value;
 					await this.plugin.saveSettings();
 				}),
 			);

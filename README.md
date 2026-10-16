@@ -2,16 +2,21 @@
 
 Embed YouTube videos, Shorts, and playlists in a note, Notion style.
 
-## Paste menu
+## Paste a link
 
-Paste a YouTube link and a menu pops up at the cursor:
+Paste a YouTube link into a note. A small card asks how to show it:
 
-- **Dismiss**: keep the plain URL (or just keep typing, the menu closes and your keys go through)
-- **Embed video / Embed Short**: turn it into a `youtube` code block
-- **Embed as HTML iframe**: raw `<iframe>` markup, renders even without this plugin
-- **Link with title**: `[Video title](url)`, title fetched from YouTube oEmbed
+| Choice                       | Result                                         |
+| ---------------------------- | ---------------------------------------------- |
+| **Embed video** (default)    | The video plays inside the note                |
+| **Title link**               | `[Video title](url)`                           |
+| **Plain link**               | The URL, exactly as pasted                     |
 
-Arrow keys and Enter work in the menu, Esc dismisses. Turn it off in settings with **Show menu on paste**.
+`↑` `↓` to choose, `Enter` to apply, `Esc` or a click elsewhere keeps the plain link. If you just keep typing, the card closes and nothing is lost.
+
+## Resize
+
+Hover an embed and drag the handle on its right edge. The width is saved into the block as `width: 480px`. Double-click the handle to go back to the default width.
 
 ## Code block
 
@@ -46,7 +51,7 @@ width: 480px
 | `end`      | `2:00`                   | Stop time                                          |
 | `caption`  | any text                 | Shown under the video, also the iframe title       |
 | `vertical` | `true` / `false`         | Force 9:16 or 16:9                                 |
-| `width`    | `480px`, `60%`           | Overrides the max width setting for this block     |
+| `width`    | `480px`, `60%`           | Set by dragging; overrides the default width       |
 
 Accepted URLs: `youtube.com/watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/live/`, `m.youtube.com`, playlists (`?list=`), and bare 11-character video ids.
 
@@ -56,10 +61,10 @@ Accepted URLs: `youtube.com/watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/liv
 
 ## Settings
 
-- **Show menu on paste** (default on).
+- **Ask what to do when pasting a YouTube link** (default on).
+- **Default video width**: starting width for 16:9 videos (default `100%`).
+- **Default Shorts width**: starting width for vertical videos (default `360px`).
 - **Privacy-enhanced mode** (default on): loads from `youtube-nocookie.com`.
-- **Max width**: cap for 16:9 videos (default `100%`).
-- **Shorts max width**: cap for vertical videos (default `360px`).
 
 ## Development
 
