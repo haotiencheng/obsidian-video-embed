@@ -80,36 +80,37 @@
 	right: 8px;
 	display: flex;
 	align-items: center;
-	gap: 4px;
-	height: auto;
-	padding: 4px 8px;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
 	border: none;
-	border-radius: var(--radius-s);
-	background: var(--background-primary);
-	box-shadow: var(--shadow-s);
-	color: var(--text-normal);
-	font-size: var(--font-ui-smaller);
+	border-radius: 6px;
+	background: rgba(0, 0, 0, 0.6);
+	box-shadow: none;
+	color: #fff;
 	cursor: pointer;
 	opacity: 0;
-	transition: opacity 120ms ease;
+	transition: opacity 120ms ease, background 120ms ease;
 }
 
 .youtube-embed button.youtube-embed-unembed:hover {
-	background: var(--background-primary-alt);
+	background: rgba(0, 0, 0, 0.85);
 }
 
-.youtube-embed-unembed svg {
+.youtube-embed button.youtube-embed-unembed svg {
 	width: 14px;
 	height: 14px;
 }
 
-.youtube-embed:hover .youtube-embed-unembed {
+.youtube-embed:hover button.youtube-embed-unembed {
 	opacity: 1;
 }
 
-/* Leave room for Live Preview's own "edit block" button in the corner. */
-.cm-embed-block .youtube-embed button.youtube-embed-unembed {
-	right: 44px;
+/* Our button owns the corner; shift Live Preview's "edit block" button left of it. */
+.cm-embed-block:has(.youtube-embed) .embed-actions,
+.cm-embed-block:has(.youtube-embed) > .edit-block-button {
+	margin-right: 34px;
 }
 
 /* The iframe would swallow pointer events mid-drag. */

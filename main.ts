@@ -154,8 +154,7 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			cls: "youtube-embed-unembed",
 			attr: { "aria-label": "Turn back into a plain link" },
 		});
-		setIcon(button.createSpan(), "link");
-		button.createSpan({ text: "Plain link" });
+		setIcon(button, "link");
 		// mousedown would otherwise put Live Preview into edit mode for the block.
 		button.addEventListener("mousedown", (e) => {
 			e.preventDefault();

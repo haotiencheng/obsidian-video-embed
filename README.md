@@ -20,7 +20,7 @@ Hover an embed and drag the handle on its right edge. The width is saved into th
 
 ## Turn it back into a link
 
-Hover an embed and click **Plain link** in its top-right corner. The whole block becomes the bare URL again. Cmd/Ctrl+Z brings the embed back.
+Hover an embed and click the small link icon in its top-right corner. The whole block becomes the bare URL again. Cmd/Ctrl+Z brings the embed back.
 
 ## Code block
 
