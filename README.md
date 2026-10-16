@@ -9,7 +9,7 @@ Paste a YouTube, Instagram, or TikTok link into a note and choose how to show it
 Requires Obsidian 1.13 or later.
 
 - **BRAT**: add `haotiencheng/obsidian-video-embed` in the BRAT plugin.
-- **Manual**: download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/haotiencheng/obsidian-video-embed/releases/latest) into `<vault>/.obsidian/plugins/video-embed/`, then enable **Video Embed** in Settings → Community plugins.
+- **Manual**: download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/haotiencheng/obsidian-video-embed/releases/latest) into `<vault>/.obsidian/plugins/youtube-embed/`, then enable **Video Embed** in Settings → Community plugins.
 
 ## Paste a link
 

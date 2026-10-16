@@ -1,5 +1,5 @@
 {
-	"id": "video-embed",
+	"id": "youtube-embed",
 	"name": "Video Embed (YouTube + Instagram + TikTok)",
 	"version": "0.2.3",
 	"minAppVersion": "1.13.0",
