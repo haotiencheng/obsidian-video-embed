@@ -10,6 +10,8 @@ export interface BlockOptions {
 	start?: number;
 	end?: number;
 	caption?: string;
+	/** Instagram creator handle shown on the card, with or without "@". */
+	author?: string;
 	vertical?: boolean;
 	width?: string;
 }
@@ -76,7 +78,7 @@ export function parseBlock(source: string): BlockOptions | null {
 	for (const line of source.split("\n")) {
 		const trimmed = line.trim();
 		if (!trimmed) continue;
-		const kv = trimmed.match(/^(start|end|caption|vertical|width|url)\s*:\s*(.*)$/i);
+		const kv = trimmed.match(/^(start|end|caption|vertical|width|url|author)\s*:\s*(.*)$/i);
 		if (!kv) {
 			if (opts.url === undefined) opts.url = trimmed;
 			continue;
@@ -89,6 +91,7 @@ export function parseBlock(source: string): BlockOptions | null {
 		else if (key === "caption") opts.caption = value;
 		else if (key === "vertical") opts.vertical = /^(true|yes|1)$/i.test(value);
 		else if (key === "width") opts.width = value;
+		else if (key === "author") opts.author = value.replace(/^@/, "");
 	}
 	return opts.url ? (opts as BlockOptions) : null;
 }
@@ -96,6 +99,8 @@ export function parseBlock(source: string): BlockOptions | null {
 export interface ParsedInstagram {
 	kind: "p" | "reel";
 	shortcode: string;
+	/** Present when the link has the instagram.com/<user>/reel/<code>/ form. */
+	username?: string;
 }
 
 const INSTAGRAM_HOSTS = /(^|\.)(instagram\.com|instagr\.am)$/;
@@ -119,7 +124,9 @@ export function parseInstagram(input: string): ParsedInstagram | null {
 	const i = parts.findIndex((p) => ["p", "reel", "reels", "tv"].includes(p));
 	const shortcode = i >= 0 ? parts[i + 1] : undefined;
 	if (!shortcode || !SHORTCODE.test(shortcode)) return null;
-	return { kind: parts[i] === "p" ? "p" : "reel", shortcode };
+	const post: ParsedInstagram = { kind: parts[i] === "p" ? "p" : "reel", shortcode };
+	if (i === 1 && /^[A-Za-z0-9._]{1,30}$/.test(parts[0])) post.username = parts[0];
+	return post;
 }
 
 export function buildInstagramEmbedUrl(post: ParsedInstagram): string {

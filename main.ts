@@ -154,8 +154,9 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			},
 		});
 
-		// Show header + media and clip the footer. Until Instagram reports its height
-		// (and again while resizing), estimate it from the width assuming 4:5 media.
+		// Show only the media: shift Instagram's header out of view and clip the footer.
+		// Until Instagram reports its height (and again while resizing), estimate it
+		// from the width assuming 4:5 media.
 		let measured: number | null = null;
 		let measuredAt = 0;
 		const layout = () => {
@@ -164,9 +165,21 @@ export default class YouTubeEmbedPlugin extends Plugin {
 			const full = measured !== null && Math.abs(width - measuredAt) < 2
 				? measured
 				: IG_HEADER + Math.round(width * 1.25) + IG_FOOTER;
+			iframe.style.top = `-${IG_HEADER}px`;
 			iframe.style.height = `${full}px`;
-			frame.style.height = `${full - IG_FOOTER}px`;
+			frame.style.height = `${full - IG_HEADER - IG_FOOTER}px`;
 		};
+
+		// Creator chip, bottom-left, like Meta AI's preview. The embed hides its own
+		// header, so this keeps the credit visible and links to the creator.
+		const author = opts.author ?? post.username;
+		const chip = frame.createEl("a", {
+			cls: "youtube-embed-ig-chip",
+			href: author ? `https://www.instagram.com/${author}/` : `https://www.instagram.com/${post.kind}/${post.shortcode}/`,
+			attr: { target: "_blank", rel: "noopener" },
+		});
+		this.drawInstagramGlyph(chip.createSpan({ cls: "youtube-embed-ig-badge" }));
+		chip.createSpan({ cls: "youtube-embed-ig-name", text: author ? `@${author}` : "Instagram" });
 		iframe.addEventListener("load", () => {
 			if (!iframe.contentWindow) return;
 			this.igMeasure.set(iframe.contentWindow, (height) => {
@@ -186,6 +199,16 @@ export default class YouTubeEmbedPlugin extends Plugin {
 		this.addActions(figure, el, ctx, opts.url);
 
 		if (opts.caption) figure.createEl("figcaption", { text: opts.caption });
+	}
+
+	/** Simple camera glyph (rounded square, lens, flash dot), drawn in white on the badge's gradient. */
+	drawInstagramGlyph(parent: HTMLElement) {
+		const svg = parent.createSvg("svg", {
+			attr: { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2" },
+		});
+		svg.createSvg("rect", { attr: { x: "3", y: "3", width: "18", height: "18", rx: "5" } });
+		svg.createSvg("circle", { attr: { cx: "12", cy: "12", r: "4" } });
+		svg.createSvg("circle", { attr: { cx: "17.3", cy: "6.7", r: "1", fill: "currentColor", stroke: "none" } });
 	}
 
 	onInstagramMessage(e: MessageEvent) {

@@ -32,14 +32,62 @@
 
 .youtube-embed.is-instagram .youtube-embed-frame {
 	aspect-ratio: auto;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 12px;
-	background: #fff;
+	border-radius: 20px;
+	background: #000;
 }
 
 .youtube-embed.is-instagram .youtube-embed-frame iframe {
 	bottom: auto;
 	height: auto;
+}
+
+/* Soft fade so the creator chip reads on any image */
+.youtube-embed.is-instagram .youtube-embed-frame::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 48px;
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.25), transparent);
+	pointer-events: none;
+}
+
+.youtube-embed-ig-chip {
+	position: absolute;
+	left: 12px;
+	bottom: 12px;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: #fff;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-medium);
+	text-decoration: none;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.youtube-embed-ig-chip:hover {
+	color: #fff;
+	text-decoration: underline;
+}
+
+.youtube-embed-ig-badge {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 7px;
+	background: linear-gradient(45deg, #f9ce34, #ee2a7b 55%, #6228d7);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.youtube-embed-ig-badge svg {
+	width: 16px;
+	height: 16px;
+	color: #fff;
 }
 
 .youtube-embed figcaption {

@@ -131,3 +131,13 @@ test("buildInstagramEmbedUrl and pastedInstagramUrl", () => {
 	assert.equal(pastedInstagramUrl(" https://www.instagram.com/reel/DZWGtwrRPIC/ ")?.shortcode, "DZWGtwrRPIC");
 	assert.equal(pastedInstagramUrl("look https://www.instagram.com/reel/DZWGtwrRPIC/"), null);
 });
+
+test("Instagram username from URL and author option", () => {
+	assert.deepEqual(parseInstagram("https://www.instagram.com/ricoh_gr_us/reel/DZWGtwrRPIC/"), {
+		kind: "reel",
+		shortcode: "DZWGtwrRPIC",
+		username: "ricoh_gr_us",
+	});
+	assert.equal(parseInstagram("https://www.instagram.com/reel/DZWGtwrRPIC/")?.username, undefined);
+	assert.equal(parseBlock("https://www.instagram.com/reel/DZWGtwrRPIC/\nauthor: @petitvisual")?.author, "petitvisual");
+});
