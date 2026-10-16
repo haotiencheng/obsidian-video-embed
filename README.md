@@ -1,4 +1,4 @@
-# Video Embed: YouTube, Instagram, TikTok
+# Video Embed (YouTube + Instagram + TikTok)
 
 Paste a YouTube, Instagram, or TikTok link into a note and choose how to show it, Notion style.
 
