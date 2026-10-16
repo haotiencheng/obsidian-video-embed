@@ -190,8 +190,8 @@
 }
 
 /* Our edit button replaces Live Preview's own "edit block" button on these embeds. */
-.cm-embed-block:has(.video-embed) .embed-actions,
-.cm-embed-block:has(.video-embed) > .edit-block-button {
+.cm-embed-block.video-embed-host .embed-actions,
+.cm-embed-block.video-embed-host > .edit-block-button {
 	display: none;
 }
 

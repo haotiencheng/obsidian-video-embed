@@ -97,6 +97,7 @@ export default class VideoEmbedPlugin extends Plugin {
 		}
 
 		const vertical = opts.vertical ?? video.isShort;
+		this.markHost(el);
 		const figure = el.createEl("figure", {
 			cls: ["video-embed", vertical ? "is-vertical" : "is-horizontal"],
 		});
@@ -142,6 +143,7 @@ export default class VideoEmbedPlugin extends Plugin {
 			return;
 		}
 
+		this.markHost(el);
 		const figure = el.createEl("figure", { cls: ["video-embed", "is-instagram"] });
 		figure.style.setProperty("--video-embed-max-width", opts.width ?? IG_DEFAULT_WIDTH);
 
@@ -214,6 +216,7 @@ export default class VideoEmbedPlugin extends Plugin {
 			return;
 		}
 
+		this.markHost(el);
 		const figure = el.createEl("figure", { cls: ["video-embed", "is-tiktok", "is-vertical"] });
 		figure.style.setProperty(
 			"--video-embed-max-width",
@@ -311,6 +314,21 @@ export default class VideoEmbedPlugin extends Plugin {
 		} catch {
 			// Not an Instagram embed message.
 		}
+	}
+
+	/**
+	 * Tag Live Preview's block container so CSS can hide its own "edit block" button
+	 * (our pencil replaces it) without a :has() selector. The container may not exist
+	 * until the block is attached, so retry for a few frames.
+	 */
+	markHost(el: HTMLElement) {
+		let tries = 0;
+		const mark = () => {
+			const host = el.closest(".cm-embed-block");
+			if (host) host.addClass("video-embed-host");
+			else if (!el.isConnected && tries++ < 10) el.win.requestAnimationFrame(mark);
+		};
+		mark();
 	}
 
 	/** Drag the right-edge handle to resize; double-click it to reset. Width is saved into the block. */
